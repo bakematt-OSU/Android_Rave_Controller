@@ -4,17 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import com.example.android_rave_controller.BluetoothService
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
 
     override fun onCreateView(
@@ -22,16 +18,25 @@ class HomeFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val homeViewModel =
-            ViewModelProvider(this).get(HomeViewModel::class.java)
-
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textHome
-        homeViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
+        binding.buttonClearSegments.setOnClickListener {
+            BluetoothService.sendCommand("clearsegments")
         }
+        binding.buttonAddSegment.setOnClickListener {
+            BluetoothService.sendCommand("addsegment 0 50")
+        }
+        binding.buttonSelectSegment.setOnClickListener {
+            BluetoothService.sendCommand("select 1")
+        }
+        binding.buttonRainbowCycle.setOnClickListener {
+            BluetoothService.sendCommand("seteffect rainbow")
+        }
+        binding.buttonSolidColor.setOnClickListener {
+            BluetoothService.sendCommand("seteffect solid")
+        }
+
         return root
     }
 
