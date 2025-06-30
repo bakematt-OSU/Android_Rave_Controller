@@ -12,16 +12,25 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Android_Rave_Controller"
         tools:targetApi="31">
+
+        <!-- This is now the LAUNCHER activity -->
         <activity
-            android:name=".MainActivity"
+            android:name=".WelcomeActivity"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- MainActivity no longer has the intent-filter for launcher -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="@string/app_name">
+        </activity>
+
     </application>
 
 </manifest>

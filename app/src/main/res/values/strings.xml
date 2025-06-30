@@ -1,6 +1,13 @@
 <resources>
     <string name="app_name">Android_Rave_Controller</string>
+    <string name="app_name_alt">Rave LED Controller</string>
+    <string name="welcome_message">STARTING LED RAVE CONTROLLER</string>
+    <string name="version">V 1.0</string>
+    <string name="author">The Maker Matt</string>
+    <string name="contact">Matthew@butlerbaker.com</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+    <!-- Add this line -->
+    <string name="programmer_logo_desc">Programmer Logo</string>
 </resources>
