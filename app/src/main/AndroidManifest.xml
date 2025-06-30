@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -13,7 +20,6 @@
         android:theme="@style/Theme.Android_Rave_Controller"
         tools:targetApi="31">
 
-        <!-- This is now the LAUNCHER activity -->
         <activity
             android:name=".WelcomeActivity"
             android:exported="true"
@@ -24,7 +30,6 @@
             </intent-filter>
         </activity>
 
-        <!-- MainActivity no longer has the intent-filter for launcher -->
         <activity
             android:name=".MainActivity"
             android:exported="false"

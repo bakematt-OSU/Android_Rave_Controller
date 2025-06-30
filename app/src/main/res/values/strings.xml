@@ -8,6 +8,7 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
-    <!-- Add this line -->
+    <string name="title_bluetooth">Bluetooth</string>
     <string name="programmer_logo_desc">Programmer Logo</string>
+    <string name="continue_button_text">Continue</string>
 </resources>
