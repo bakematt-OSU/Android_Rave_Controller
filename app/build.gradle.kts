@@ -42,7 +42,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.github.dhaval2404:colorpicker:2.3
+    implementation("com.github.dhaval2404:colorpicker:2.3")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
