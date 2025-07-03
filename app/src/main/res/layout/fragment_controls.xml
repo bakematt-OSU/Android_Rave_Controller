@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp"
+    tools:context=".ui.controls.ControlsFragment">
+
+    <Button
+        android:id="@+id/button_clear_segments"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clear Segments" />
+
+    <Button
+        android:id="@+id/button_add_segment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Add Segment" />
+
+    <Button
+        android:id="@+id/button_select_segment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Select Segment 1" />
+
+    <Button
+        android:id="@+id/button_rainbow_cycle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Rainbow Cycle" />
+
+    <Button
+        android:id="@+id/button_solid_color"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Solid Color" />
+
+</LinearLayout>

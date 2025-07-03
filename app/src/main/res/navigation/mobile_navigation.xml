@@ -19,7 +19,14 @@
         android:id="@+id/navigation_dashboard"
         android:name="com.example.android_rave_controller.ui.dashboard.DashboardFragment"
         android:label="@string/title_dashboard"
-        tools:layout="@layout/fragment_dashboard" />
+        tools:layout="@layout/fragment_dashboard" >
+        <action
+            android:id="@+id/action_navigation_dashboard_to_navigation_controls"
+            app:destination="@id/navigation_controls" />
+        <action
+            android:id="@+id/action_dashboard_to_bluetooth"
+            app:destination="@id/navigation_bluetooth" />
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_notifications"
@@ -31,5 +38,24 @@
         android:id="@+id/navigation_bluetooth"
         android:name="com.example.android_rave_controller.ui.bluetooth.BluetoothFragment"
         android:label="@string/title_bluetooth"
-        tools:layout="@layout/fragment_bluetooth" />
+        tools:layout="@layout/fragment_bluetooth" >
+        <action
+            android:id="@+id/action_bluetooth_to_dashboard"
+            app:destination="@id/navigation_dashboard"
+            app:popUpTo="@id/navigation_bluetooth"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_controls"
+        android:name="com.example.android_rave_controller.ui.controls.ControlsFragment"
+        android:label="Debug Buttons"
+        tools:layout="@layout/fragment_controls" />
+
 </navigation>
+
+
+
+
+
+

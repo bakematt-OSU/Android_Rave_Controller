@@ -8,38 +8,27 @@
     android:padding="16dp"
     tools:context=".ui.home.HomeFragment">
 
-    <Button
-        android:id="@+id/button_clear_segments"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/text_connection_status"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Clear Segments" />
+        android:layout_marginBottom="16dp"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="Status: Disconnected" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Get Started Connecting to Rave Controller Hardware"
+        android:textAlignment="center"
+        android:textSize="24sp" />
 
     <Button
-        android:id="@+id/button_add_segment"
-        android:layout_width="match_parent"
+        android:id="@+id/button_to_bluetooth"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Add Segment" />
-
-    <Button
-        android:id="@+id/button_select_segment"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Select Segment 1" />
-
-    <Button
-        android:id="@+id/button_rainbow_cycle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Rainbow Cycle" />
-
-    <Button
-        android:id="@+id/button_solid_color"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Solid Color" />
+        android:layout_marginTop="16dp"
+        android:text="Connect to Bluetooth" />
 
 </LinearLayout>

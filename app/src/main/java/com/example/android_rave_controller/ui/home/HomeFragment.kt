@@ -4,8 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.android_rave_controller.BluetoothService
+import com.example.android_rave_controller.R
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -21,20 +24,19 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        binding.buttonClearSegments.setOnClickListener {
-            BluetoothService.sendCommand("clearsegments")
+        binding.buttonToBluetooth.setOnClickListener {
+            findNavController().navigate(R.id.action_navigation_home_to_navigation_bluetooth)
         }
-        binding.buttonAddSegment.setOnClickListener {
-            BluetoothService.sendCommand("addsegment 0 50")
-        }
-        binding.buttonSelectSegment.setOnClickListener {
-            BluetoothService.sendCommand("select 1")
-        }
-        binding.buttonRainbowCycle.setOnClickListener {
-            BluetoothService.sendCommand("seteffect rainbow")
-        }
-        binding.buttonSolidColor.setOnClickListener {
-            BluetoothService.sendCommand("seteffect solid")
+
+        // Observe connection state
+        BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected ->
+            if (isConnected) {
+                binding.textConnectionStatus.text = "Status: Connected"
+                binding.textConnectionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.teal_200))
+            } else {
+                binding.textConnectionStatus.text = "Status: Disconnected"
+                binding.textConnectionStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_light))
+            }
         }
 
         return root

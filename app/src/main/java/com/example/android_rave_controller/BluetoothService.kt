@@ -9,6 +9,8 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import java.util.*
 
 object BluetoothService {
@@ -16,6 +18,10 @@ object BluetoothService {
     // --- UUIDs from your RP2040 Code ---
     private val LED_SERVICE_UUID = UUID.fromString("0000180a-0000-1000-8000-00805f9b34fb")
     private val CMD_CHARACTERISTIC_UUID = UUID.fromString("00002a57-0000-1000-8000-00805f9b34fb")
+
+    // --- Add LiveData for Connection State ---
+    private val _connectionState = MutableLiveData(false)
+    val connectionState: LiveData<Boolean> get() = _connectionState
 
     // --- Callback Interface ---
     interface ConnectionListener {
@@ -26,8 +32,6 @@ object BluetoothService {
     private var bluetoothGatt: BluetoothGatt? = null
     private var cmdCharacteristic: BluetoothGattCharacteristic? = null
     private var appContext: Context? = null // Store context for Toasts
-    var isConnected: Boolean = false
-        private set
 
     // This callback is where the app handles connection events and service discovery
     private val gattCallback = object : BluetoothGattCallback() {
@@ -39,14 +43,14 @@ object BluetoothService {
             }
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                isConnected = true
+                _connectionState.postValue(true)
                 showToast("Connected to $deviceName! Discovering services...")
                 if (ActivityCompat.checkSelfPermission(appContext!!, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return
                 }
                 gatt.discoverServices()
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                isConnected = false
+                _connectionState.postValue(false)
                 cmdCharacteristic = null
                 showToast("Disconnected from $deviceName.")
                 disconnect() // Clean up resources
@@ -98,7 +102,8 @@ object BluetoothService {
     }
 
     fun sendCommand(command: String) {
-        if (!isConnected || bluetoothGatt == null || cmdCharacteristic == null) {
+        // Check LiveData for connection state
+        if (_connectionState.value != true || bluetoothGatt == null || cmdCharacteristic == null) {
             showToast("Cannot send command. Not connected.")
             return
         }
@@ -121,7 +126,7 @@ object BluetoothService {
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
             bluetoothGatt = null
-            isConnected = false
+            _connectionState.postValue(false)
         }
     }
 
