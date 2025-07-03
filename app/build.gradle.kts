@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+////    id("androidx.navigation.safeargs.kotlin") version "2.6.0" apply false
+//    id("androidx.navigation.safeargs.kotlin") version "2.7.7" apply false
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -39,7 +42,7 @@ android {
 }
 
 dependencies {
-
+    implementation 'com.github.dhaval2404:colorpicker:2.3
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -52,4 +55,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }

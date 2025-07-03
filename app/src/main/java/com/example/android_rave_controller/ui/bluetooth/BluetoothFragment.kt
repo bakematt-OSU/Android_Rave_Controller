@@ -21,6 +21,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -35,7 +36,6 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
     private val binding get() = _binding!!
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
-        // The typo has been corrected in the line below
         val bluetoothManager = requireActivity().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
@@ -44,6 +44,7 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
     private lateinit var deviceListAdapter: ArrayAdapter<String>
     private val devices = ArrayList<BluetoothDevice>()
     private val deviceNames = ArrayList<String>()
+    private var selectedDeviceName: String? = null
 
     private val scanSettings = ScanSettings.Builder()
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -105,6 +106,7 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
                 Toast.makeText(requireContext(), "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@setOnItemClickListener
             }
+            selectedDeviceName = device.name
             BluetoothService.connect(requireContext(), device)
             Toast.makeText(requireContext(), "Connecting to ${device.name}", Toast.LENGTH_SHORT).show()
         }
@@ -116,7 +118,16 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
 
     override fun onConnectionSuccess() {
         Handler(Looper.getMainLooper()).post {
-            findNavController().navigate(R.id.action_bluetooth_to_dashboard)
+            context?.let {
+                AlertDialog.Builder(it)
+                    .setTitle("Connection Successful")
+                    .setNegativeButton("Dashboard") { _, _ ->
+                        val action = BluetoothFragmentDirections.actionBluetoothToDashboard(selectedDeviceName)
+                        findNavController().navigate(action)
+                    }
+                    .setCancelable(false)
+                    .show()
+            }
         }
     }
 

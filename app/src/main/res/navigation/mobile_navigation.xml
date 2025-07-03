@@ -26,6 +26,11 @@
         <action
             android:id="@+id/action_dashboard_to_bluetooth"
             app:destination="@id/navigation_bluetooth" />
+        <argument
+            android:name="deviceName"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="Not Connected" />
     </fragment>
 
     <fragment
