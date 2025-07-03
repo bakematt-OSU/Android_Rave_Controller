@@ -12,4 +12,5 @@
     <string name="programmer_logo_desc">Programmer Logo</string>
     <string name="continue_button_text">Continue</string>
     <string name="add_hardware_bt">Connect To Controller</string>
+
 </resources>
