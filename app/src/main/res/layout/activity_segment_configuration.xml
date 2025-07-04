@@ -1,0 +1,27 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/edit_text_start_led"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Start LED"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/edit_text_end_led"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="End LED"
+        android:inputType="number" />
+
+    <Button
+        android:id="@+id/button_save_segment"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save" />
+</LinearLayout>

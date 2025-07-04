@@ -1,6 +1,7 @@
 package com.example.android_rave_controller.ui.bluetooth
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -9,34 +10,26 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.os.ParcelUuid
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import com.example.android_rave_controller.BluetoothService
-import com.example.android_rave_controller.R
-import com.example.android_rave_controller.databinding.FragmentBluetoothBinding
-import java.util.UUID
+import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
+import java.util.*
 
-class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
+class BluetoothActivity : AppCompatActivity() {
 
-    private var _binding: FragmentBluetoothBinding? = null
-    private val binding get() = _binding!!
+    private lateinit var binding: ActivityBluetoothBinding
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
-        val bluetoothManager = requireActivity().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
 
@@ -58,7 +51,7 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
             if (device != null && device.name != null && !devices.contains(device)) {
-                if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(this@BluetoothActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return
                 }
                 devices.add(device)
@@ -68,7 +61,7 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
         }
 
         override fun onScanFailed(errorCode: Int) {
-            Toast.makeText(requireContext(), "BLE Scan Failed: $errorCode", Toast.LENGTH_LONG).show()
+            Toast.makeText(this@BluetoothActivity, "BLE Scan Failed: $errorCode", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -77,21 +70,20 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
             if (permissions.entries.all { it.value }) {
                 startScanning()
             } else {
-                Toast.makeText(requireContext(), "Permissions are required for Bluetooth functionality.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Permissions are required for Bluetooth functionality.", Toast.LENGTH_LONG).show()
             }
         }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentBluetoothBinding.inflate(inflater, container, false)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityBluetoothBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        deviceListAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, deviceNames)
+        deviceListAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, deviceNames)
         binding.devicesListView.adapter = deviceListAdapter
 
         if (bluetoothAdapter == null) {
-            Toast.makeText(requireContext(), "Bluetooth is not supported on this device.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Bluetooth is not supported on this device.", Toast.LENGTH_LONG).show()
             binding.scanButton.isEnabled = false
         }
 
@@ -102,31 +94,23 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
         binding.devicesListView.setOnItemClickListener { _, _, position, _ ->
             stopScanning()
             val device = devices[position]
-            if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(requireContext(), "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@setOnItemClickListener
             }
             selectedDeviceName = device.name
-            BluetoothService.connect(requireContext(), device)
-            Toast.makeText(requireContext(), "Connecting to ${device.name}", Toast.LENGTH_SHORT).show()
+            BluetoothService.connect(this, device)
+            Toast.makeText(this, "Connecting to ${device.name}", Toast.LENGTH_SHORT).show()
         }
 
-        BluetoothService.setConnectionListener(this)
-
-        return binding.root
-    }
-
-    override fun onConnectionSuccess() {
-        Handler(Looper.getMainLooper()).post {
-            context?.let {
-                AlertDialog.Builder(it)
-                    .setTitle("Connection Successful")
-                    .setNegativeButton("Dashboard") { _, _ ->
-                        val action = BluetoothFragmentDirections.actionBluetoothToDashboard(selectedDeviceName)
-                        findNavController().navigate(action)
-                    }
-                    .setCancelable(false)
-                    .show()
+        // Observe the connection state from BluetoothService
+        BluetoothService.connectionState.observe(this) { isConnected ->
+            if (isConnected) {
+                val resultIntent = Intent().apply {
+                    putExtra("deviceName", selectedDeviceName)
+                }
+                setResult(Activity.RESULT_OK, resultIntent)
+                finish()
             }
         }
     }
@@ -142,7 +126,7 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
         }
 
         val missingPermissions = requiredPermissions.filter {
-            ActivityCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
+            ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
 
         if (missingPermissions.isNotEmpty()) {
@@ -154,30 +138,28 @@ class BluetoothFragment : Fragment(), BluetoothService.ConnectionListener {
 
     private fun startScanning() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(requireContext(), "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
             return
         }
         devices.clear()
         deviceNames.clear()
         deviceListAdapter.notifyDataSetChanged()
         bleScanner?.startScan(listOf(scanFilter), scanSettings, scanCallback)
-        Toast.makeText(requireContext(), "Scanning for devices...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Scanning for devices...", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopScanning() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(requireContext(), "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
             return
         }
         bleScanner?.stopScan(scanCallback)
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    override fun onDestroy() {
+        super.onDestroy()
         stopScanning()
-        BluetoothService.setConnectionListener(null)
-        _binding = null
     }
 }

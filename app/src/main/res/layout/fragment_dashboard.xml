@@ -42,4 +42,24 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/button_to_controls" />
 
+    <Button
+        android:id="@+id/button_add_segment"
+        style="@style/MyButtonStyle"
+        android:text="Add Segment" />
+
+    <Button
+        android:id="@+id/button_save_config"
+        style="@style/MyButtonStyle"
+        android:text="Save Configuration" />
+
+    <Button
+        android:id="@+id/button_load_config"
+        style="@style/MyButtonStyle"
+        android:text="Load Configuration" />
+
+    <Button
+        android:id="@+id/button_refresh"
+        style="@style/MyButtonStyle"
+        android:text="Refresh" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

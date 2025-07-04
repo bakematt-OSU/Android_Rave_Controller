@@ -1,15 +1,16 @@
 package com.example.android_rave_controller.ui.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import com.example.android_rave_controller.BluetoothService
 import com.example.android_rave_controller.R
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
+import com.example.android_rave_controller.ui.bluetooth.BluetoothActivity
 
 class HomeFragment : Fragment() {
 
@@ -25,7 +26,8 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         binding.buttonToBluetooth.setOnClickListener {
-            findNavController().navigate(R.id.action_navigation_home_to_navigation_bluetooth)
+            val intent = Intent(activity, BluetoothActivity::class.java)
+            startActivity(intent)
         }
 
         // Observe connection state

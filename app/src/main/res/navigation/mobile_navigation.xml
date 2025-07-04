@@ -9,11 +9,7 @@
         android:id="@+id/navigation_home"
         android:name="com.example.android_rave_controller.ui.home.HomeFragment"
         android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" >
-        <action
-            android:id="@+id/action_navigation_home_to_navigation_bluetooth"
-            app:destination="@id/navigation_bluetooth" />
-    </fragment>
+        tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@+id/navigation_dashboard"
@@ -23,9 +19,6 @@
         <action
             android:id="@+id/action_navigation_dashboard_to_navigation_controls"
             app:destination="@id/navigation_controls" />
-        <action
-            android:id="@+id/action_dashboard_to_bluetooth"
-            app:destination="@id/navigation_bluetooth" />
         <argument
             android:name="deviceName"
             app:argType="string"
@@ -40,27 +33,9 @@
         tools:layout="@layout/fragment_notifications" />
 
     <fragment
-        android:id="@+id/navigation_bluetooth"
-        android:name="com.example.android_rave_controller.ui.bluetooth.BluetoothFragment"
-        android:label="@string/title_bluetooth"
-        tools:layout="@layout/fragment_bluetooth" >
-        <action
-            android:id="@+id/action_bluetooth_to_dashboard"
-            app:destination="@id/navigation_dashboard"
-            app:popUpTo="@id/navigation_bluetooth"
-            app:popUpToInclusive="true" />
-    </fragment>
-
-    <fragment
         android:id="@+id/navigation_controls"
         android:name="com.example.android_rave_controller.ui.controls.ControlsFragment"
         android:label="Debug Buttons"
         tools:layout="@layout/fragment_controls" />
 
 </navigation>
-
-
-
-
-
-

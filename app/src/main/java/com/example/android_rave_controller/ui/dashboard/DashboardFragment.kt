@@ -1,5 +1,6 @@
 package com.example.android_rave_controller.ui.dashboard
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,13 +9,14 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.example.android_rave_controller.R
+import com.example.android_rave_controller.SegmentConfigurationActivity
 import com.example.android_rave_controller.databinding.FragmentDashboardBinding
+import com.example.android_rave_controller.ui.bluetooth.BluetoothActivity
 
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
-    // This line should now resolve correctly
     private val args: DashboardFragmentArgs by navArgs()
 
     override fun onCreateView(
@@ -23,7 +25,11 @@ class DashboardFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
-        val root: View = binding.root
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         binding.deviceNameText.text = "Connected to: ${args.deviceName}"
 
@@ -32,10 +38,14 @@ class DashboardFragment : Fragment() {
         }
 
         binding.buttonToBluetooth.setOnClickListener {
-            findNavController().navigate(R.id.action_dashboard_to_bluetooth)
+            val intent = Intent(activity, BluetoothActivity::class.java)
+            startActivity(intent)
         }
 
-        return root
+        binding.buttonAddSegment.setOnClickListener {
+            val intent = Intent(activity, SegmentConfigurationActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     override fun onDestroyView() {

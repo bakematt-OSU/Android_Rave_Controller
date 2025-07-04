@@ -5,6 +5,7 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -102,20 +103,28 @@ object BluetoothService {
     }
 
     fun sendCommand(command: String) {
-        // Check LiveData for connection state
         if (_connectionState.value != true || bluetoothGatt == null || cmdCharacteristic == null) {
             showToast("Cannot send command. Not connected.")
             return
         }
 
         val characteristic = cmdCharacteristic ?: return
-        characteristic.value = command.toByteArray(Charsets.UTF_8)
-        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        val commandBytes = command.toByteArray(Charsets.UTF_8)
 
         if (ActivityCompat.checkSelfPermission(appContext!!, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return
         }
-        bluetoothGatt?.writeCharacteristic(characteristic)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            bluetoothGatt?.writeCharacteristic(
+                characteristic,
+                commandBytes,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            )
+        } else {
+            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            bluetoothGatt?.writeCharacteristic(characteristic, commandBytes, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+        }
     }
 
     fun disconnect() {
