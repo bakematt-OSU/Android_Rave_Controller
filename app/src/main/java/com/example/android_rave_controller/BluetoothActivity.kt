@@ -43,8 +43,9 @@ class BluetoothActivity : AppCompatActivity() {
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
 
+    // Scan filter updated to use the "180A" service UUID.
     private val scanFilter = ScanFilter.Builder()
-        .setServiceUuid(ParcelUuid(UUID.fromString("0000180a-0000-1000-8000-00805f9b34fb")))
+        .setServiceUuid(ParcelUuid(UUID.fromString("0000180A-0000-1000-8000-00805F9B34FB")))
         .build()
 
     private val scanCallback = object : ScanCallback() {
@@ -158,8 +159,8 @@ class BluetoothActivity : AppCompatActivity() {
         bleScanner?.stopScan(scanCallback)
     }
 
+    // The call to stopScanning() has been removed from onDestroy() to prevent the race condition.
     override fun onDestroy() {
         super.onDestroy()
-        stopScanning()
     }
 }
