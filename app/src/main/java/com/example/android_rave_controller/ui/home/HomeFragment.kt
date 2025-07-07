@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.android_rave_controller.BluetoothService
 import com.example.android_rave_controller.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
 import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
@@ -16,6 +15,7 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
+    // This ViewModel is shared with the MainActivity
     private val connectionViewModel: ConnectionViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -27,17 +27,12 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         binding.buttonToBluetooth.setOnClickListener {
+            // Shows the Bluetooth scanning dialog
             BluetoothDialogFragment().show(parentFragmentManager, "BluetoothDialog")
         }
 
-        BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected ->
-            if (isConnected) {
-                val deviceName = BluetoothService.connectedDevice?.name ?: "Unknown Device"
-                connectionViewModel.updateConnection(true, deviceName)
-            } else {
-                connectionViewModel.updateConnection(false, null)
-            }
-        }
+        // The observer that was here has been removed, as the MainActivity
+        // is already handling the connection status updates.
 
         return root
     }

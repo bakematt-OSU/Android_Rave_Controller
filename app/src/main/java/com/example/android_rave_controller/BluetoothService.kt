@@ -17,8 +17,6 @@ import java.util.*
 object BluetoothService {
 
     private const val TAG = "BluetoothService"
-    private const val MTU_SIZE = 512
-
     // --- UUIDs to match your RP2040 Firmware ---
     private val LED_SERVICE_UUID = UUID.fromString("0000180A-0000-1000-8000-00805F9B34FB")
     private val CMD_CHARACTERISTIC_UUID = UUID.fromString("00002A57-0000-1000-8000-00805F9B34FB")
@@ -26,15 +24,11 @@ object BluetoothService {
 
     private val _connectionState = MutableLiveData(false)
     val connectionState: LiveData<Boolean> get() = _connectionState
-
-    // ✅ This public variable holds the connected device so other parts of the app can access it.
     var connectedDevice: BluetoothDevice? = null
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var cmdCharacteristic: BluetoothGattCharacteristic? = null
     private var appContext: Context? = null
-
-    // Ensure all UI operations are on the main thread
     private val mainHandler = Handler(Looper.getMainLooper())
 
 
@@ -43,13 +37,9 @@ object BluetoothService {
             val deviceName = getDeviceName(gatt.device)
 
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
-                // ✅ Store the device object on successful connection
                 connectedDevice = gatt.device
-
-                // Connection successful
                 _connectionState.postValue(true)
                 showToast("Connected to $deviceName! Discovering services...")
-                // The gatt object is valid, start service discovery
                 mainHandler.post {
                     if (!gatt.discoverServices()) {
                         Log.e(TAG, "discoverServices() failed to initiate.")
@@ -59,11 +49,9 @@ object BluetoothService {
                 return
             }
 
-            // Any other state is a disconnect or failure, including GATT_ERROR (133)
             if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.e(TAG, "Connection state error. Status: $status, NewState: $newState")
                 cleanupConnection()
-                // _connectionState is set to false inside cleanupConnection()
                 showToast("Disconnected from $deviceName.")
             }
         }
@@ -83,7 +71,6 @@ object BluetoothService {
                     cleanupConnection()
                     return
                 }
-                // Service and characteristic found, now enable notifications.
                 enableNotifications(gatt, cmdCharacteristic!!)
 
             } else {
@@ -95,6 +82,8 @@ object BluetoothService {
         override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Notifications enabled successfully. Connection is ready.")
+                // **DELETED LINE:** The line below was removed to prevent the race condition.
+                // DeviceProtocolHandler.requestEffectsList()
             } else {
                 Log.e(TAG, "Failed to write descriptor, status: $status")
                 cleanupConnection()
@@ -102,8 +91,8 @@ object BluetoothService {
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-            val hexValue = value.joinToString(separator = " ") { "%02X".format(it) }
-            Log.d(TAG, "Heartbeat received: $hexValue")
+            // Delegate all response parsing to the protocol handler
+            DeviceProtocolHandler.parseResponse(value)
         }
 
         @Deprecated("Use onCharacteristicChanged with byte array")
@@ -124,7 +113,6 @@ object BluetoothService {
             }
             bluetoothGatt = null
             cmdCharacteristic = null
-            // ✅ Clear the device object on disconnection
             connectedDevice = null
             _connectionState.postValue(false)
         }
@@ -136,7 +124,6 @@ object BluetoothService {
     }
 
     fun connect(context: Context, device: BluetoothDevice) {
-        // Always use the application context to avoid memory leaks and lifecycle issues
         appContext = context.applicationContext
 
         if (bluetoothGatt != null) {
@@ -210,24 +197,24 @@ object BluetoothService {
         }
     }
 
-    fun sendCommand(command: String) {
+    fun sendCommand(bytes: ByteArray) {
         if (_connectionState.value != true || bluetoothGatt == null || cmdCharacteristic == null) {
             showToast("Cannot send command. Not connected.")
             return
         }
         val characteristic = cmdCharacteristic ?: return
-        val commandBytes = command.toByteArray(Charsets.UTF_8)
         if (ActivityCompat.checkSelfPermission(appContext!!, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) { return }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            bluetoothGatt?.writeCharacteristic(characteristic, commandBytes, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+            bluetoothGatt?.writeCharacteristic(characteristic, bytes, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
         } else {
             @Suppress("DEPRECATION")
             {
                 characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                characteristic.value = commandBytes
+                characteristic.value = bytes
                 bluetoothGatt?.writeCharacteristic(characteristic)
             }
         }
+        Log.d(TAG, "Sent bytes: ${bytes.joinToString { "0x%02X".format(it) }}")
     }
 }

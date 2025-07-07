@@ -7,61 +7,69 @@
     android:padding="16dp"
     tools:context=".ui.dashboard.DashboardFragment">
 
-    <TextView
-        android:id="@+id/device_name_text"
+    <Button
+        android:id="@+id/button_add_segment"
+        style="@style/MyButtonStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="64dp"
-        android:gravity="center_horizontal"
-        android:textSize="18sp"
+        android:layout_marginTop="24dp"
+        android:text="Add Segment"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:text="Connected to: Device Name" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/button_refresh"
+        style="@style/MyButtonStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Refresh Segments"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_add_segment" />
+
+    <Button
+        android:id="@+id/button_save_config"
+        style="@style/MyButtonStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Save Configuration"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_refresh" />
+
+    <Button
+        android:id="@+id/button_load_config"
+        style="@style/MyButtonStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Load Configuration"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_save_config" />
 
     <Button
         android:id="@+id/button_to_controls"
         style="@style/MyButtonStyle"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Open Debug Buttons"
         app:layout_constraintBottom_toTopOf="@+id/button_to_bluetooth"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.45"
-        app:layout_constraintVertical_chainStyle="packed" />
+        android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/button_to_bluetooth"
         style="@style/MyButtonStyle"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:text="Connect to Bluetooth"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/button_to_controls" />
-
-    <Button
-        android:id="@+id/button_add_segment"
-        style="@style/MyButtonStyle"
-        android:text="Add Segment" />
-
-    <Button
-        android:id="@+id/button_save_config"
-        style="@style/MyButtonStyle"
-        android:text="Save Configuration" />
-
-    <Button
-        android:id="@+id/button_load_config"
-        style="@style/MyButtonStyle"
-        android:text="Load Configuration" />
-
-    <Button
-        android:id="@+id/button_refresh"
-        style="@style/MyButtonStyle"
-        android:text="Refresh" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
