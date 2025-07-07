@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-////    id("androidx.navigation.safeargs.kotlin") version "2.6.0" apply false
-//    id("androidx.navigation.safeargs.kotlin") version "2.7.7" apply false
+    id("kotlin-parcelize")
     id("androidx.navigation.safeargs.kotlin")
 }
 
@@ -38,7 +37,9 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        dataBinding = true // Add this line
     }
+
 }
 
 dependencies {
@@ -55,5 +56,4 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
 }

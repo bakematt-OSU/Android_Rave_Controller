@@ -38,4 +38,10 @@
         android:label="Debug Buttons"
         tools:layout="@layout/fragment_controls" />
 
+    <fragment
+        android:id="@+id/navigation_segments"
+        android:name="com.example.android_rave_controller.SegmentsFragment"
+        android:label="@string/title_segments"
+        tools:layout="@layout/fragment_segments" />
+
 </navigation>

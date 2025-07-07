@@ -11,7 +11,7 @@ import androidx.navigation.fragment.navArgs
 import com.example.android_rave_controller.R
 import com.example.android_rave_controller.SegmentConfigurationActivity
 import com.example.android_rave_controller.databinding.FragmentDashboardBinding
-import com.example.android_rave_controller.ui.bluetooth.BluetoothActivity
+import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
 
 class DashboardFragment : Fragment() {
 
@@ -38,8 +38,7 @@ class DashboardFragment : Fragment() {
         }
 
         binding.buttonToBluetooth.setOnClickListener {
-            val intent = Intent(activity, BluetoothActivity::class.java)
-            startActivity(intent)
+            BluetoothDialogFragment().show(parentFragmentManager, "BluetoothDialog")
         }
 
         binding.buttonAddSegment.setOnClickListener {

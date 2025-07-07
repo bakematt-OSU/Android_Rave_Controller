@@ -2,7 +2,6 @@ package com.example.android_rave_controller
 
 import android.Manifest
 import android.bluetooth.*
-import android.bluetooth.le.*
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -28,6 +27,9 @@ object BluetoothService {
     private val _connectionState = MutableLiveData(false)
     val connectionState: LiveData<Boolean> get() = _connectionState
 
+    // ✅ This public variable holds the connected device so other parts of the app can access it.
+    var connectedDevice: BluetoothDevice? = null
+
     private var bluetoothGatt: BluetoothGatt? = null
     private var cmdCharacteristic: BluetoothGattCharacteristic? = null
     private var appContext: Context? = null
@@ -41,6 +43,9 @@ object BluetoothService {
             val deviceName = getDeviceName(gatt.device)
 
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                // ✅ Store the device object on successful connection
+                connectedDevice = gatt.device
+
                 // Connection successful
                 _connectionState.postValue(true)
                 showToast("Connected to $deviceName! Discovering services...")
@@ -58,13 +63,11 @@ object BluetoothService {
             if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.e(TAG, "Connection state error. Status: $status, NewState: $newState")
                 cleanupConnection()
-                _connectionState.postValue(false)
+                // _connectionState is set to false inside cleanupConnection()
                 showToast("Disconnected from $deviceName.")
             }
         }
 
-        // MTU negotiation removed in favor of direct service discovery for simplicity,
-        // as the core issue was context-related. It can be added back if needed.
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Services discovered successfully.")
@@ -121,6 +124,8 @@ object BluetoothService {
             }
             bluetoothGatt = null
             cmdCharacteristic = null
+            // ✅ Clear the device object on disconnection
+            connectedDevice = null
             _connectionState.postValue(false)
         }
     }
@@ -130,11 +135,6 @@ object BluetoothService {
         cleanupConnection()
     }
 
-    /**
-     * THE FIX IS HERE.
-     * This function now uses the application context to establish the connection,
-     * ensuring it is not tied to the lifecycle of any single activity.
-     */
     fun connect(context: Context, device: BluetoothDevice) {
         // Always use the application context to avoid memory leaks and lifecycle issues
         appContext = context.applicationContext
@@ -151,7 +151,6 @@ object BluetoothService {
 
         Log.d(TAG, "Attempting to connect to ${getDeviceName(device)}")
 
-        // ** THE FIX ** Use appContext, not context.
         bluetoothGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             device.connectGatt(appContext, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
         } else {

@@ -21,6 +21,7 @@
 
     <Button
         android:id="@+id/button_to_controls"
+        style="@style/MyButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Open Debug Buttons"
@@ -33,6 +34,7 @@
 
     <Button
         android:id="@+id/button_to_bluetooth"
+        style="@style/MyButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"

@@ -1,21 +1,22 @@
 package com.example.android_rave_controller.ui.home
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.example.android_rave_controller.BluetoothService
-import com.example.android_rave_controller.R
+import com.example.android_rave_controller.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
-import com.example.android_rave_controller.ui.bluetooth.BluetoothActivity
+import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
+    private val connectionViewModel: ConnectionViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,18 +27,15 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         binding.buttonToBluetooth.setOnClickListener {
-            val intent = Intent(activity, BluetoothActivity::class.java)
-            startActivity(intent)
+            BluetoothDialogFragment().show(parentFragmentManager, "BluetoothDialog")
         }
 
-        // Observe connection state
         BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected ->
             if (isConnected) {
-                binding.textConnectionStatus.text = "Status: Connected"
-                binding.textConnectionStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.teal_200))
+                val deviceName = BluetoothService.connectedDevice?.name ?: "Unknown Device"
+                connectionViewModel.updateConnection(true, deviceName)
             } else {
-                binding.textConnectionStatus.text = "Status: Disconnected"
-                binding.textConnectionStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_light))
+                connectionViewModel.updateConnection(false, null)
             }
         }
 

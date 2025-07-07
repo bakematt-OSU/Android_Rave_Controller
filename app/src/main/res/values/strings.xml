@@ -12,5 +12,7 @@
     <string name="programmer_logo_desc">Programmer Logo</string>
     <string name="continue_button_text">Continue</string>
     <string name="add_hardware_bt">Search for Bluetooth Devices</string>
-
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_segments">Segments</string>
 </resources>

@@ -1,46 +1,90 @@
 package com.example.android_rave_controller
 
-import android.app.Activity
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import androidx.activity.result.contract.ActivityResultContracts
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.navigation.NavController
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.navigation.ui.setupWithNavController
 import com.example.android_rave_controller.databinding.ActivityMainBinding
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
+    private val connectionViewModel: ConnectionViewModel by viewModels()
 
-    private val colorPickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data: Intent? = result.data
-            data?.let {
-                val selectedColor = it.getIntExtra("selectedColor", Color.BLACK)
-                val red = Color.red(selectedColor)
-                val green = Color.green(selectedColor)
-                val blue = Color.blue(selectedColor)
-                val rgbText = "RGB: ($red, $green, $blue)"
-                binding.colorTextView.text = rgbText
-                binding.colorTextView.setTextColor(selectedColor)
-            }
-        }
-    }
+    // Declare properties to hold the views from the toolbar
+    private lateinit var toolbarTitle: TextView
+    private lateinit var textDeviceName: TextView
+    private lateinit var imageConnectionStatus: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.pickColorButton.setOnClickListener {
-            val intent = Intent(this, ColorPickerActivity::class.java)
-            colorPickerLauncher.launch(intent)
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+
+        // Find the views inside the toolbar manually
+        toolbarTitle = binding.toolbar.findViewById(R.id.toolbar_title)
+        textDeviceName = binding.toolbar.findViewById(R.id.text_device_name)
+        imageConnectionStatus = binding.toolbar.findViewById(R.id.image_connection_status)
+
+        val navView: BottomNavigationView = binding.navView
+        navController = findNavController(R.id.nav_host_fragment_activity_main)
+
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_segments)
+        )
+        setupActionBarWithNavController(navController, appBarConfiguration)
+        navView.setupWithNavController(navController)
+
+        // Listen for screen changes to update the title
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            toolbarTitle.text = destination.label
+        }
+
+        // Observe the ViewModel for connection status changes to update the UI
+        connectionViewModel.isConnected.observe(this) { isConnected ->
+            val deviceName = connectionViewModel.deviceName.value
+            updateConnectionStatus(isConnected, deviceName)
+        }
+
+        // Observe the BluetoothService directly to update the ViewModel
+        BluetoothService.connectionState.observe(this) { isConnected ->
+            val deviceName = if (isConnected) {
+                BluetoothService.connectedDevice?.name
+            } else {
+                null
+            }
+            connectionViewModel.updateConnection(isConnected, deviceName)
+        }
+
+        // Set initial state
+        updateConnectionStatus(false, null)
+    }
+
+    private fun updateConnectionStatus(isConnected: Boolean, deviceName: String?) {
+        if (isConnected && deviceName != null) {
+            // Connected State
+            textDeviceName.visibility = View.VISIBLE
+            textDeviceName.text = deviceName
+            imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_connected)
+            imageConnectionStatus.setColorFilter(Color.GREEN)
+        } else {
+            // Disconnected State
+            textDeviceName.visibility = View.GONE
+            imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_disconnected)
+            imageConnectionStatus.setColorFilter(Color.RED)
         }
     }
 }
