@@ -3,17 +3,13 @@ package com.example.android_rave_controller
 import android.util.Log
 import com.example.android_rave_controller.models.EffectsRepository
 import com.example.android_rave_controller.models.SegmentsRepository
-import com.example.android_rave_controller.models.Status // <-- IMPORTANT: Added import
+import com.example.android_rave_controller.models.Status
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 
 object DeviceProtocolHandler {
 
     // --- Command IDs ---
-    private const val CMD_SET_EFFECT: Byte = 0x02
-    private const val CMD_SET_SEG_BRIGHT: Byte = 0x04
-    private const val CMD_SELECT_SEGMENT: Byte = 0x05
-    private const val CMD_SET_SEG_RANGE: Byte = 0x07
     private const val CMD_GET_STATUS: Byte = 0x08
 
     // Buffer for assembling fragmented Bluetooth packets
@@ -27,40 +23,55 @@ object DeviceProtocolHandler {
         BluetoothService.sendCommand(command)
     }
 
-    // **RESTORED FUNCTIONS** that are still used by the UI
+    // --- Restored functions for UI compatibility ---
     fun setSegmentRange(segIdx: Int, start: Int, end: Int) {
         val startHigh = (start shr 8).toByte()
         val startLow = (start and 0xFF).toByte()
         val endHigh = (end shr 8).toByte()
         val endLow = (end and 0xFF).toByte()
-        val command = byteArrayOf(CMD_SET_SEG_RANGE, segIdx.toByte(), startHigh, startLow, endHigh, endLow)
+        val command = byteArrayOf(0x07, segIdx.toByte(), startHigh, startLow, endHigh, endLow)
         BluetoothService.sendCommand(command)
     }
 
     fun selectSegment(segIdx: Int) {
-        val command = byteArrayOf(CMD_SELECT_SEGMENT, segIdx.toByte())
+        val command = byteArrayOf(0x05, segIdx.toByte())
         BluetoothService.sendCommand(command)
     }
 
     fun setEffect(effectIndex: Int) {
-        val command = byteArrayOf(CMD_SET_EFFECT, effectIndex.toByte())
+        val command = byteArrayOf(0x02, effectIndex.toByte())
         BluetoothService.sendCommand(command)
     }
 
     fun setSegmentBrightness(segIdx: Int, brightness: Int) {
-        val command = byteArrayOf(CMD_SET_SEG_BRIGHT, segIdx.toByte(), brightness.toByte())
+        val command = byteArrayOf(0x04, segIdx.toByte(), brightness.toByte())
         BluetoothService.sendCommand(command)
     }
 
 
     // --- Public Function to Parse Incoming Data ---
     fun parseResponse(bytes: ByteArray) {
+        // **THIS IS THE FINAL FIX**
+        // Check if the message is a single-byte heartbeat (value 0). If so, ignore it.
+        if (bytes.size == 1 && bytes[0] == 0.toByte()) {
+            Log.d("ProtocolHandler", "Heartbeat received and discarded.")
+            return // Exit the function immediately.
+        }
+
         val incomingText = bytes.toString(Charsets.UTF_8)
         responseBuffer.append(incomingText)
 
         if (incomingText.contains('\n')) {
-            val fullMessage = responseBuffer.toString().substringBefore('\n').trim()
-            Log.d("ProtocolHandler", "Complete message received: $fullMessage")
+            var fullMessage = responseBuffer.toString().substringBefore('\n')
+            Log.d("ProtocolHandler", "Received raw message: $fullMessage")
+
+            // Find the first '{' and trim any garbage characters from the start.
+            val jsonStartIndex = fullMessage.indexOf('{')
+            if (jsonStartIndex != -1) {
+                fullMessage = fullMessage.substring(jsonStartIndex)
+            }
+
+            Log.d("ProtocolHandler", "Cleaned message for parsing: $fullMessage")
 
             try {
                 val status = gson.fromJson(fullMessage, Status::class.java)
