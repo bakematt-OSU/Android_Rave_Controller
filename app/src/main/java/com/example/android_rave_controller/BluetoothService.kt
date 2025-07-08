@@ -25,7 +25,7 @@ object BluetoothService {
     private val _connectionState = MutableLiveData(false)
     val connectionState: LiveData<Boolean> get() = _connectionState
     var connectedDevice: BluetoothDevice? = null
-    var connectedDeviceName: String? = null // ADD THIS LINE
+    var connectedDeviceName: String? = null
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var cmdCharacteristic: BluetoothGattCharacteristic? = null
@@ -39,7 +39,7 @@ object BluetoothService {
 
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
                 connectedDevice = gatt.device
-                connectedDeviceName = deviceName // ADD THIS LINE
+                connectedDeviceName = deviceName
                 _connectionState.postValue(true)
                 showToast("Connected to $deviceName! Discovering services...")
                 mainHandler.post {
@@ -84,16 +84,23 @@ object BluetoothService {
         override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Notifications enabled successfully. Connection is ready.")
-                // **DELETED LINE:** The line below was removed to prevent the race condition.
-                // DeviceProtocolHandler.requestEffectsList()
             } else {
                 Log.e(TAG, "Failed to write descriptor, status: $status")
                 cleanupConnection()
             }
         }
 
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Write successful. Notifying handler to send next command.")
+                // THIS IS THE KEY FIX: The handler is now the only thing that advances the queue.
+                DeviceProtocolHandler.onCommandSent()
+            } else {
+                Log.e(TAG, "Write failed with status: $status")
+            }
+        }
+
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-            // Delegate all response parsing to the protocol handler
             DeviceProtocolHandler.parseResponse(value)
         }
 
@@ -116,7 +123,7 @@ object BluetoothService {
             bluetoothGatt = null
             cmdCharacteristic = null
             connectedDevice = null
-            connectedDeviceName = null // ADD THIS LINE
+            connectedDeviceName = null
             _connectionState.postValue(false)
         }
     }

@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.android_rave_controller.databinding.ActivityMainBinding
+import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -25,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbarTitle: TextView
     private lateinit var textDeviceName: TextView
     private lateinit var imageConnectionStatus: ImageView
+    private lateinit var statusLayout: LinearLayout // Add a reference to the layout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +41,7 @@ class MainActivity : AppCompatActivity() {
         toolbarTitle = binding.toolbar.findViewById(R.id.toolbar_title)
         textDeviceName = binding.toolbar.findViewById(R.id.text_device_name)
         imageConnectionStatus = binding.toolbar.findViewById(R.id.image_connection_status)
+        statusLayout = binding.toolbar.findViewById(R.id.status_layout) // Find the layout
 
         val navView: BottomNavigationView = binding.navView
         navController = findNavController(R.id.nav_host_fragment_activity_main)
@@ -62,6 +66,12 @@ class MainActivity : AppCompatActivity() {
             }
             connectionViewModel.updateConnection(isConnected, deviceName)
             updateConnectionStatus(isConnected, deviceName) // Directly update the UI here
+        }
+
+        // --- NEW ---
+        // Add a click listener to the entire status layout
+        statusLayout.setOnClickListener {
+            BluetoothDialogFragment().show(supportFragmentManager, "BluetoothDialog")
         }
 
         // Set initial state
