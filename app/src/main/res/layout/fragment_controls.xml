@@ -12,34 +12,34 @@
         android:id="@+id/button_clear_segments"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clear Segments" />
+        android:text="@string/button_clear_segments" />
 
     <Button
         android:id="@+id/button_add_segment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Add Segment" />
+        android:text="@string/button_add_segment" />
 
     <Button
         android:id="@+id/button_select_segment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Select Segment 1" />
+        android:text="@string/button_select_segment_1" />
 
     <Button
         android:id="@+id/button_rainbow_cycle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Rainbow Cycle" />
+        android:text="@string/button_rainbow_cycle" />
 
     <Button
         android:id="@+id/button_solid_color"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Solid Color" />
+        android:text="@string/button_solid_color" />
 
 </LinearLayout>

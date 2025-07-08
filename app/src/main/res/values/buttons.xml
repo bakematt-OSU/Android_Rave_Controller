@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="button_clear_segments">Clear Segments</string>
+    <string name="button_add_segment">Add Segment</string>
+    <string name="button_select_segment_1">Select Segment 1</string>
+    <string name="button_rainbow_cycle">Rainbow Cycle</string>
+    <string name="button_solid_color">Solid Color</string>
+    <string name="button_search_for_devices">Search for Bluetooth Devices</string>
+    <string name="button_connect_to_bluetooth">Connect to Bluetooth</string>
+    <string name="button_refresh_segments">Get Current Config</string>
+    <string name="button_save_configuration">Save Configuration</string>
+    <string name="button_load_configuration">Load Configuration</string>
+    <string name="button_open_debug">Open Debug Buttons</string>
+    <string name="button_continue">Continue</string>
+    <string name="button_select_color">Select Color</string>
+    <string name="button_save">Save</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_delete">Delete</string>
+    <string name="dialog_get_config_title">Get Current Config</string>
+    <string name="dialog_get_config_message">This will overwrite your current local configuration. Are you sure?</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+    <string name="dialog_load_config_title">Load Configuration</string>
+    <string name="dialog_load_config_message">This will overwrite your current configuration and send it to the device. Continue?</string>
+    <string name="dialog_save_config_title">Save Configuration</string>
+    <string name="dialog_load_config_select_title">Select a Configuration to Load</string>
+    <string name="button_push_configuration">Push Configuration</string>
+
+    <string name="button_label_push">Push</string>
+    <string name="button_label_get">Get</string>
+    <string name="button_label_add">Add</string>
+    <string name="button_label_load">Load</string>
+    <string name="button_label_save">Save</string>
+</resources>

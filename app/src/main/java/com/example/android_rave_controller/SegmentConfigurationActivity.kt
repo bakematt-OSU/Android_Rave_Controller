@@ -3,13 +3,14 @@ package com.example.android_rave_controller
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Toast
-import androidx.activity.viewModels // The SINGLE, CORRECT import
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.Segment
@@ -21,10 +22,13 @@ class SegmentConfigurationActivity : AppCompatActivity() {
     private val segmentViewModel: SegmentViewModel by viewModels()
     private val effectsViewModel: EffectsViewModel by viewModels()
     private var isUpdatingFromSlider = false
+    private var segmentToEdit: Segment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_segment_configuration)
+
+        segmentToEdit = intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT")
 
         val nameEditText = findViewById<EditText>(R.id.edit_text_segment_name)
         val startLedEditText = findViewById<EditText>(R.id.edit_text_start_led)
@@ -44,6 +48,13 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             effectsAdapter.clear()
             effectsAdapter.addAll(effects)
             effectsAdapter.notifyDataSetChanged()
+            // If editing, set the spinner to the correct effect
+            segmentToEdit?.let {
+                val effectPosition = effects.indexOf(it.effect)
+                if (effectPosition >= 0) {
+                    effectSpinner.setSelection(effectPosition)
+                }
+            }
         }
 
         segmentViewModel.segments.observe(this) { segments ->
@@ -75,8 +86,23 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         startLedEditText.addTextChangedListener(textWatcher)
         endLedEditText.addTextChangedListener(textWatcher)
 
-        startLedEditText.setText(ledRangeSlider.values[0].toInt().toString())
-        endLedEditText.setText(ledRangeSlider.values[1].toInt().toString())
+        if (segmentToEdit != null) {
+            // Edit Mode
+            nameEditText.setText(segmentToEdit!!.name)
+
+            // Check if the segment's end value is greater than the slider's max
+            if (segmentToEdit!!.endLed > ledRangeSlider.valueTo) {
+                ledRangeSlider.valueTo = segmentToEdit!!.endLed.toFloat()
+            }
+
+            ledRangeSlider.values = listOf(segmentToEdit!!.startLed.toFloat(), segmentToEdit!!.endLed.toFloat())
+            brightnessSeekBar.progress = segmentToEdit!!.brightness
+            deleteButton.visibility = View.VISIBLE
+        } else {
+            // Add Mode
+            startLedEditText.setText(ledRangeSlider.values[0].toInt().toString())
+            endLedEditText.setText(ledRangeSlider.values[1].toInt().toString())
+        }
 
         saveButton.setOnClickListener {
             val name = nameEditText.text.toString()
@@ -86,25 +112,30 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             val brightness = brightnessSeekBar.progress
 
             if (name.isNotEmpty()) {
-                val newSegment = Segment(
-                    id = UUID.randomUUID().toString(),
-                    name = name,
-                    startLed = start,
-                    endLed = end,
-                    effect = effect,
-                    brightness = brightness
-                )
-                segmentViewModel.addSegment(newSegment)
-
-                val newSegmentIndex = (segmentViewModel.segments.value?.size ?: 1) - 1
-
-                DeviceProtocolHandler.setSegmentRange(newSegmentIndex, start, end)
-                DeviceProtocolHandler.selectSegment(newSegmentIndex)
-                val effectIndex = effectsViewModel.effects.value?.indexOf(effect) ?: 0
-                DeviceProtocolHandler.setEffect(effectIndex)
-                DeviceProtocolHandler.setSegmentBrightness(newSegmentIndex, brightness)
-
-                Toast.makeText(this, "$name saved", Toast.LENGTH_SHORT).show()
+                if (segmentToEdit == null) {
+                    // Add new segment
+                    val newSegment = Segment(
+                        id = UUID.randomUUID().toString(),
+                        name = name,
+                        startLed = start,
+                        endLed = end,
+                        effect = effect,
+                        brightness = brightness
+                    )
+                    segmentViewModel.addSegment(newSegment)
+                    Toast.makeText(this, "$name saved", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Update existing segment
+                    val updatedSegment = segmentToEdit!!.copy(
+                        name = name,
+                        startLed = start,
+                        endLed = end,
+                        effect = effect,
+                        brightness = brightness
+                    )
+                    segmentViewModel.updateSegment(updatedSegment)
+                    Toast.makeText(this, "$name updated", Toast.LENGTH_SHORT).show()
+                }
                 finish()
             } else {
                 Toast.makeText(this, "Please enter a segment name", Toast.LENGTH_SHORT).show()
@@ -116,8 +147,11 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         }
 
         deleteButton.setOnClickListener {
-            Toast.makeText(this, "Delete clicked", Toast.LENGTH_SHORT).show()
-            finish()
+            segmentToEdit?.let {
+                segmentViewModel.deleteSegment(it.id)
+                Toast.makeText(this, "${it.name} deleted", Toast.LENGTH_SHORT).show()
+                finish()
+            }
         }
     }
 }

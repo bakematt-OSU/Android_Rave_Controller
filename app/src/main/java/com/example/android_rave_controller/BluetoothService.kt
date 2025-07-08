@@ -25,6 +25,7 @@ object BluetoothService {
     private val _connectionState = MutableLiveData(false)
     val connectionState: LiveData<Boolean> get() = _connectionState
     var connectedDevice: BluetoothDevice? = null
+    var connectedDeviceName: String? = null // ADD THIS LINE
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var cmdCharacteristic: BluetoothGattCharacteristic? = null
@@ -38,6 +39,7 @@ object BluetoothService {
 
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
                 connectedDevice = gatt.device
+                connectedDeviceName = deviceName // ADD THIS LINE
                 _connectionState.postValue(true)
                 showToast("Connected to $deviceName! Discovering services...")
                 mainHandler.post {
@@ -114,6 +116,7 @@ object BluetoothService {
             bluetoothGatt = null
             cmdCharacteristic = null
             connectedDevice = null
+            connectedDeviceName = null // ADD THIS LINE
             _connectionState.postValue(false)
         }
     }

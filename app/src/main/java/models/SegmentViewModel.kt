@@ -8,4 +8,12 @@ class SegmentViewModel : ViewModel() {
     fun addSegment(segment: Segment) {
         SegmentsRepository.addSegment(segment)
     }
+
+    fun updateSegment(segment: Segment) {
+        SegmentsRepository.updateSegment(segment)
+    }
+
+    fun deleteSegment(segmentId: String) {
+        SegmentsRepository.deleteSegment(segmentId)
+    }
 }

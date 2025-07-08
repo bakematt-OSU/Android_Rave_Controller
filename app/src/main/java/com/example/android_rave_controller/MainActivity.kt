@@ -53,20 +53,15 @@ class MainActivity : AppCompatActivity() {
             toolbarTitle.text = destination.label
         }
 
-        // Observe the ViewModel for connection status changes to update the UI
-        connectionViewModel.isConnected.observe(this) { isConnected ->
-            val deviceName = connectionViewModel.deviceName.value
-            updateConnectionStatus(isConnected, deviceName)
-        }
-
-        // Observe the BluetoothService directly to update the ViewModel
+        // Observe the BluetoothService directly to update the ViewModel and the UI
         BluetoothService.connectionState.observe(this) { isConnected ->
             val deviceName = if (isConnected) {
-                BluetoothService.connectedDevice?.name
+                BluetoothService.connectedDeviceName
             } else {
                 null
             }
             connectionViewModel.updateConnection(isConnected, deviceName)
+            updateConnectionStatus(isConnected, deviceName) // Directly update the UI here
         }
 
         // Set initial state

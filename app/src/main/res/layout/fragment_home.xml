@@ -22,6 +22,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Connect to Bluetooth" />
+        android:text="@string/button_connect_to_bluetooth" />
 
 </LinearLayout>

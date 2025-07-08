@@ -8,10 +8,24 @@ object SegmentsRepository {
     fun addSegment(segment: Segment) {
         val currentList = segments.value ?: mutableListOf()
         currentList.add(segment)
-        segments.value = currentList
+        segments.postValue(currentList)
     }
 
-    // New function to update from a list
+    fun updateSegment(updatedSegment: Segment) {
+        val currentList = segments.value ?: return
+        val index = currentList.indexOfFirst { it.id == updatedSegment.id }
+        if (index != -1) {
+            currentList[index] = updatedSegment
+            segments.postValue(currentList)
+        }
+    }
+
+    fun deleteSegment(segmentId: String) {
+        val currentList = segments.value ?: return
+        currentList.removeAll { it.id == segmentId }
+        segments.postValue(currentList)
+    }
+
     fun updateSegments(newSegments: List<Segment>) {
         segments.postValue(newSegments.toMutableList())
     }

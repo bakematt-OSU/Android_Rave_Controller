@@ -1,18 +1,14 @@
 package com.example.android_rave_controller.ui.dashboard
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.android_rave_controller.ConnectionViewModel
-import com.example.android_rave_controller.DeviceProtocolHandler
 import com.example.android_rave_controller.R
-import com.example.android_rave_controller.SegmentConfigurationActivity
 import com.example.android_rave_controller.databinding.FragmentDashboardBinding
 import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
 
@@ -44,16 +40,6 @@ class DashboardFragment : Fragment() {
 
         binding.buttonToBluetooth.setOnClickListener {
             BluetoothDialogFragment().show(parentFragmentManager, "BluetoothDialog")
-        }
-
-        binding.buttonAddSegment.setOnClickListener {
-            val intent = Intent(activity, SegmentConfigurationActivity::class.java)
-            startActivity(intent)
-        }
-
-        binding.buttonRefresh.setOnClickListener {
-            DeviceProtocolHandler.requestDeviceStatus()
-            Toast.makeText(context, "Requesting segment update...", Toast.LENGTH_SHORT).show()
         }
     }
 

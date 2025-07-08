@@ -27,7 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:background="@drawable/rainbow_button_background"
-        android:text="@string/continue_button_text"
+        android:text="@string/button_continue"
         android:textColor="@android:color/white"
         android:textSize="34sp"
         app:backgroundTint="@null"

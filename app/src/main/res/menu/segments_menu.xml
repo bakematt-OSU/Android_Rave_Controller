@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_push_config"
+        android:title="@string/button_push_configuration"
+        android:icon="@android:drawable/ic_menu_upload"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_add_segment"
+        android:title="@string/button_add_segment"
+        android:icon="@android:drawable/ic_menu_add"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_get_config"
+        android:title="@string/button_refresh_segments"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_save_config"
+        android:title="@string/button_save_configuration"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_load_config"
+        android:title="@string/button_load_configuration"
+        app:showAsAction="never" />
+</menu>
