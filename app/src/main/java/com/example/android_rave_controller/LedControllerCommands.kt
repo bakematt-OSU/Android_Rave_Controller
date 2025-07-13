@@ -1,4 +1,4 @@
-package com.yourpackage.name
+package com.example.android_rave_controller
 
 object LedControllerCommands {
     const val CMD_SET_COLOR = 0x01
@@ -15,4 +15,3 @@ object LedControllerCommands {
     const val CMD_SET_LED_COUNT = 0x0C
     const val CMD_GET_LED_COUNT = 0x0D
 }
-

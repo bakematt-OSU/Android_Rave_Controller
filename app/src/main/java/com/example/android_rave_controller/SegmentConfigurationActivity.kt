@@ -12,6 +12,7 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentViewModel
@@ -44,13 +45,16 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         effectsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_layout)
         effectSpinner.adapter = effectsAdapter
 
+        // **FIX**: Observe the LiveData<List<Effect>> directly.
+        // The transformation from Effect to String happens inside the observer.
         effectsViewModel.effects.observe(this) { effects ->
+            val effectNames = effects.map { it.name }
             effectsAdapter.clear()
-            effectsAdapter.addAll(effects)
+            effectsAdapter.addAll(effectNames)
             effectsAdapter.notifyDataSetChanged()
-            // If editing, set the spinner to the correct effect
+
             segmentToEdit?.let {
-                val effectPosition = effects.indexOf(it.effect)
+                val effectPosition = effectNames.indexOf(it.effect)
                 if (effectPosition >= 0) {
                     effectSpinner.setSelection(effectPosition)
                 }
@@ -87,19 +91,14 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         endLedEditText.addTextChangedListener(textWatcher)
 
         if (segmentToEdit != null) {
-            // Edit Mode
             nameEditText.setText(segmentToEdit!!.name)
-
-            // Check if the segment's end value is greater than the slider's max
             if (segmentToEdit!!.endLed > ledRangeSlider.valueTo) {
                 ledRangeSlider.valueTo = segmentToEdit!!.endLed.toFloat()
             }
-
             ledRangeSlider.values = listOf(segmentToEdit!!.startLed.toFloat(), segmentToEdit!!.endLed.toFloat())
             brightnessSeekBar.progress = segmentToEdit!!.brightness
             deleteButton.visibility = View.VISIBLE
         } else {
-            // Add Mode
             startLedEditText.setText(ledRangeSlider.values[0].toInt().toString())
             endLedEditText.setText(ledRangeSlider.values[1].toInt().toString())
         }
@@ -113,7 +112,6 @@ class SegmentConfigurationActivity : AppCompatActivity() {
 
             if (name.isNotEmpty()) {
                 if (segmentToEdit == null) {
-                    // Add new segment
                     val newSegment = Segment(
                         id = UUID.randomUUID().toString(),
                         name = name,
@@ -125,7 +123,6 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     segmentViewModel.addSegment(newSegment)
                     Toast.makeText(this, "$name saved", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Update existing segment
                     val updatedSegment = segmentToEdit!!.copy(
                         name = name,
                         startLed = start,
