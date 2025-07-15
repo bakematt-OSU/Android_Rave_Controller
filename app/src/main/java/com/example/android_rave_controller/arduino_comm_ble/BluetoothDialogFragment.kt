@@ -1,4 +1,5 @@
-package com.example.android_rave_controller.arduino_comm.bluetooth
+// src/main/java/com/example/android_rave_controller/arduino_comm_ble/BluetoothDialogFragment.kt
+package com.example.android_rave_controller.arduino_comm_ble
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -19,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
@@ -50,7 +52,7 @@ class BluetoothDialogFragment : DialogFragment() {
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            if (device != null && device.name != null && !devices.any { it.address == device.address }) {
+            if (device != null) { // Removed device.name != null
                 if (ActivityCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.BLUETOOTH_CONNECT
@@ -58,10 +60,12 @@ class BluetoothDialogFragment : DialogFragment() {
                 ) {
                     return
                 }
-                devices.add(device)
-                // Ensure UI updates are on the main thread
-                activity?.runOnUiThread {
-                    deviceListAdapter.notifyItemInserted(devices.size - 1)
+                if (!devices.any { it.address == device.address }) {
+                    devices.add(device)
+                    // Ensure UI updates are on the main thread
+                    activity?.runOnUiThread {
+                        deviceListAdapter.notifyItemInserted(devices.size - 1)
+                    }
                 }
             }
         }
@@ -87,6 +91,10 @@ class BluetoothDialogFragment : DialogFragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = ActivityBluetoothBinding.inflate(inflater, container, false)
         dialog?.setTitle("Scan for Devices")
+
+        // Initialize BluetoothService here with application context
+        BluetoothService.initialize(requireContext().applicationContext)
+
         return binding.root
     }
 
@@ -105,7 +113,7 @@ class BluetoothDialogFragment : DialogFragment() {
             checkPermissionsAndScan()
         }
 
-        BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected ->
+        BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected: Boolean ->
             if (isConnected) {
                 dismiss() // Close the dialog on successful connection
             }
@@ -125,15 +133,16 @@ class BluetoothDialogFragment : DialogFragment() {
     private fun setupRecyclerView() {
         deviceListAdapter = BluetoothDeviceAdapter(devices) { device ->
             stopScanning()
-            if (ActivityCompat.checkSelfPermission(
+            if (ContextCompat.checkSelfPermission(
                     requireContext(),
                     Manifest.permission.BLUETOOTH_CONNECT
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
+                Toast.makeText(context, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@BluetoothDeviceAdapter
             }
-            BluetoothService.connect(requireContext(), device)
-            Toast.makeText(context, "Connecting to ${device.name}", Toast.LENGTH_SHORT).show()
+            BluetoothService.connect(requireContext(), device) // Pass the BluetoothDevice directly
+            Toast.makeText(context, "Connecting to ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
         }
         binding.devicesRecyclerView.adapter = deviceListAdapter
         binding.devicesRecyclerView.layoutManager = LinearLayoutManager(context)
@@ -147,7 +156,7 @@ class BluetoothDialogFragment : DialogFragment() {
         }
 
         val missingPermissions = requiredPermissions.filter {
-            ActivityCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
         }
 
         if (missingPermissions.isNotEmpty()) {
@@ -158,11 +167,12 @@ class BluetoothDialogFragment : DialogFragment() {
     }
 
     private fun startScanning() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ActivityCompat.checkSelfPermission(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.BLUETOOTH_SCAN
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            Toast.makeText(context, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
             return
         }
         devices.clear()
@@ -173,11 +183,12 @@ class BluetoothDialogFragment : DialogFragment() {
 
     private fun stopScanning() {
         if (bleScanner == null) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ActivityCompat.checkSelfPermission(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.BLUETOOTH_SCAN
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            // No Toast here, as it might be called on fragment destruction
             return
         }
         bleScanner?.stopScan(scanCallback)

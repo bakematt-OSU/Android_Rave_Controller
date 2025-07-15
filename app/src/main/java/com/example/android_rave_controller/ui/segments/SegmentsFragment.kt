@@ -20,9 +20,9 @@ import com.example.android_rave_controller.models.SegmentViewModel
 import com.example.android_rave_controller.models.SegmentsRepository
 
 // Change these imports if your handler/manager live elsewhere
-import com.example.android_rave_controller.arduino_comm.bluetooth.DeviceProtocolHandler
+import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.support_code.ConfigurationManager
-import com.example.android_rave_controller.arduino_comm.bluetooth.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.R
 
 class SegmentsFragment : Fragment() {

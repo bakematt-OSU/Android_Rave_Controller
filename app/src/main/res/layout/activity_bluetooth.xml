@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".arduino_comm.bluetooth.BluetoothActivity">
+    tools:context=".arduino_comm_ble.BluetoothActivity">
 
     <Button
         android:id="@+id/scan_button"

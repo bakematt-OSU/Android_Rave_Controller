@@ -1,4 +1,5 @@
-package com.example.android_rave_controller.arduino_comm
+// src/main/java/com/example/android_rave_controller/arduino_comm_ble/LedControllerCommands.kt
+package com.example.android_rave_controller.arduino_comm_ble
 
 object LedControllerCommands {
     const val CMD_SET_COLOR = 0x01
@@ -14,4 +15,8 @@ object LedControllerCommands {
     const val CMD_GET_EFFECT_INFO = 0x0B
     const val CMD_SET_LED_COUNT = 0x0C
     const val CMD_GET_LED_COUNT = 0x0D
+    // Added CMD_ACK based on usage in DeviceProtocolHandler.kt for responses
+    // 0xA0 is a common value for acknowledgment in embedded systems and often
+    // used as a response prefix in some protocols.
+    const val CMD_ACK = 0xA0
 }

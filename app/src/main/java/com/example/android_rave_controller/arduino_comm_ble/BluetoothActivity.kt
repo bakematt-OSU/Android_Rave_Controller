@@ -1,4 +1,5 @@
-package com.example.android_rave_controller.arduino_comm.bluetooth
+// src/main/java/com/example/android_rave_controller/arduino_comm_ble/BluetoothActivity.kt
+package com.example.android_rave_controller.arduino_comm_ble
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -17,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
@@ -47,12 +49,15 @@ class BluetoothActivity : AppCompatActivity() {
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            if (device != null && device.name != null && !devices.any { it.address == device.address }) {
+            if (device != null) { // Removed device.name != null to allow unnamed devices to appear
                 if (ActivityCompat.checkSelfPermission(this@BluetoothActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return
                 }
-                devices.add(device)
-                deviceListAdapter.notifyItemInserted(devices.size - 1)
+                // Only add if not already in the list to prevent duplicates
+                if (!devices.any { it.address == device.address }) {
+                    devices.add(device)
+                    deviceListAdapter.notifyItemInserted(devices.size - 1)
+                }
             }
         }
 
@@ -75,8 +80,8 @@ class BluetoothActivity : AppCompatActivity() {
         binding = ActivityBluetoothBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // The manual window layout adjustment has been removed.
-        // The theme specified in AndroidManifest.xml will handle the dialog appearance.
+        // Initialize BluetoothService here
+        BluetoothService.initialize(applicationContext)
 
         // Setup RecyclerView
         setupRecyclerView()
@@ -92,10 +97,10 @@ class BluetoothActivity : AppCompatActivity() {
         }
 
         // Observe the connection state from BluetoothService
-        BluetoothService.connectionState.observe(this) { isConnected ->
+        BluetoothService.connectionState.observe(this) { isConnected: Boolean ->
             if (isConnected) {
                 val resultIntent = Intent().apply {
-                    putExtra("deviceName", selectedDeviceName)
+                    putExtra("deviceName", BluetoothService.connectedDeviceName) // Get name from service
                 }
                 setResult(RESULT_OK, resultIntent)
                 finish()
@@ -107,13 +112,13 @@ class BluetoothActivity : AppCompatActivity() {
         deviceListAdapter = BluetoothDeviceAdapter(devices) { device ->
             // This is the click listener lambda
             stopScanning()
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@BluetoothDeviceAdapter
             }
-            selectedDeviceName = device.name
-            BluetoothService.connect(this, device)
-            Toast.makeText(this, "Connecting to ${device.name}", Toast.LENGTH_SHORT).show()
+            selectedDeviceName = device.name // Store the device name for when connected
+            BluetoothService.connect(this, device) // Pass the BluetoothDevice directly
+            Toast.makeText(this, "Connecting to ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
         }
         binding.devicesRecyclerView.adapter = deviceListAdapter
         binding.devicesRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -131,7 +136,7 @@ class BluetoothActivity : AppCompatActivity() {
         }
 
         val missingPermissions = requiredPermissions.filter {
-            ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
 
         if (missingPermissions.isNotEmpty()) {
@@ -143,7 +148,7 @@ class BluetoothActivity : AppCompatActivity() {
 
     private fun startScanning() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -155,15 +160,15 @@ class BluetoothActivity : AppCompatActivity() {
 
     private fun stopScanning() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            // No Toast here, as it might be called on activity destruction
             return
         }
         bleScanner?.stopScan(scanCallback)
     }
 
-    // The call to stopScanning() has been removed from onDestroy() to prevent the race condition.
     override fun onDestroy() {
         super.onDestroy()
+        stopScanning() // Stop scanning when the activity is destroyed
     }
 }

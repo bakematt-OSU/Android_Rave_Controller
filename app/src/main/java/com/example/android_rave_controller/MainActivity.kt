@@ -1,3 +1,4 @@
+// src/main/java/com/example/android_rave_controller/MainActivity.kt
 package com.example.android_rave_controller
 
 import android.graphics.Color
@@ -14,9 +15,9 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.android_rave_controller.databinding.ActivityMainBinding
-import com.example.android_rave_controller.arduino_comm.bluetooth.BluetoothDialogFragment
-import com.example.android_rave_controller.arduino_comm.bluetooth.BluetoothService
-import com.example.android_rave_controller.arduino_comm.bluetooth.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm_ble.BluetoothDialogFragment
+import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm_ble.BluetoothService // Corrected import
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -45,6 +46,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize BluetoothService here before observing or using it
+        BluetoothService.initialize(applicationContext)
+
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
@@ -66,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Observe the BluetoothService directly to update the ViewModel and the UI
-        BluetoothService.connectionState.observe(this) { isConnected ->
+        BluetoothService.connectionState.observe(this) { isConnected: Boolean -> // Explicitly defined type
             val deviceName = if (isConnected) {
                 BluetoothService.connectedDeviceName
             } else {
