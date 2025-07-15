@@ -20,13 +20,13 @@
         tools:targetApi="31">
         <!-- The BluetoothActivity entry has been removed -->
         <activity
-            android:name=".SegmentConfigurationActivity"
+            android:name=".ui.segments.SegmentConfigurationActivity"
             android:exported="false" />
         <activity
-            android:name=".ColorPickerActivity"
+            android:name=".support_code.ColorPickerActivity"
             android:exported="false" />
         <activity
-            android:name=".WelcomeActivity"
+            android:name=".ui.welcome.WelcomeActivity"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>

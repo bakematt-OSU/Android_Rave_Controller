@@ -1,7 +1,6 @@
-package com.example.android_rave_controller.ui.bluetooth
+package com.example.android_rave_controller.arduino_comm.bluetooth
 
 import android.Manifest
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -9,19 +8,16 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.ParcelUuid
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.android_rave_controller.BluetoothService
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
 
@@ -30,7 +26,7 @@ class BluetoothActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBluetoothBinding
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
 
@@ -101,7 +97,7 @@ class BluetoothActivity : AppCompatActivity() {
                 val resultIntent = Intent().apply {
                     putExtra("deviceName", selectedDeviceName)
                 }
-                setResult(Activity.RESULT_OK, resultIntent)
+                setResult(RESULT_OK, resultIntent)
                 finish()
             }
         }

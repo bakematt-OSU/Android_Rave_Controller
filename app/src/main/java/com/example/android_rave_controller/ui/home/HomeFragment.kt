@@ -6,9 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.android_rave_controller.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm.bluetooth.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentHomeBinding
-import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
+import com.example.android_rave_controller.arduino_comm.bluetooth.BluetoothDialogFragment
 
 class HomeFragment : Fragment() {
 

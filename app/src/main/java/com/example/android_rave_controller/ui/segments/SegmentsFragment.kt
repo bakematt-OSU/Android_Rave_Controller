@@ -1,4 +1,4 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.ui.segments
 
 import android.app.AlertDialog
 import android.content.Intent
@@ -20,8 +20,10 @@ import com.example.android_rave_controller.models.SegmentViewModel
 import com.example.android_rave_controller.models.SegmentsRepository
 
 // Change these imports if your handler/manager live elsewhere
-import com.example.android_rave_controller.DeviceProtocolHandler
-import com.example.android_rave_controller.ConfigurationManager
+import com.example.android_rave_controller.arduino_comm.bluetooth.DeviceProtocolHandler
+import com.example.android_rave_controller.support_code.ConfigurationManager
+import com.example.android_rave_controller.arduino_comm.bluetooth.ConnectionViewModel
+import com.example.android_rave_controller.R
 
 class SegmentsFragment : Fragment() {
 

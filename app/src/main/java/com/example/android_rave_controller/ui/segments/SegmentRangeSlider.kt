@@ -1,10 +1,11 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.ui.segments
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
 import androidx.core.content.ContextCompat
+import com.example.android_rave_controller.R
 import com.example.android_rave_controller.models.Segment
 import com.google.android.material.slider.RangeSlider
 

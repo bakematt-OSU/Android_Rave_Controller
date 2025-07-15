@@ -54,7 +54,7 @@
                 android:inputType="number" />
         </LinearLayout>
 
-        <com.example.android_rave_controller.SegmentRangeSlider
+        <com.example.android_rave_controller.ui.segments.SegmentRangeSlider
             android:id="@+id/range_slider_led"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

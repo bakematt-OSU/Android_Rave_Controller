@@ -1,8 +1,9 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.arduino_comm.bluetooth
 
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.android_rave_controller.arduino_comm.LedControllerCommands
 import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectsRepository
 import com.example.android_rave_controller.models.RaveConfigurationForTransport
@@ -14,6 +15,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import java.util.LinkedList
 import java.util.Queue
+import kotlin.text.iterator
 
 object DeviceProtocolHandler {
 

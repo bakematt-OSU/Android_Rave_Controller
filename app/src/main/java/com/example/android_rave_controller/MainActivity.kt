@@ -14,7 +14,9 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.android_rave_controller.databinding.ActivityMainBinding
-import com.example.android_rave_controller.ui.bluetooth.BluetoothDialogFragment
+import com.example.android_rave_controller.arduino_comm.bluetooth.BluetoothDialogFragment
+import com.example.android_rave_controller.arduino_comm.bluetooth.BluetoothService
+import com.example.android_rave_controller.arduino_comm.bluetooth.ConnectionViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +30,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textDeviceName: TextView
     private lateinit var imageConnectionStatus: ImageView
     private lateinit var statusLayout: LinearLayout // Add a reference to the layout
+
+    // Add this declaration and initialization for appBarConfiguration
+    private val appBarConfiguration by lazy {
+        AppBarConfiguration(
+            setOf(
+                R.id.navigation_home, R.id.navigation_segments
+            )
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,9 +57,6 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = binding.navView
         navController = findNavController(R.id.nav_host_fragment_activity_main)
 
-        val appBarConfiguration = AppBarConfiguration(
-            setOf(R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_segments)
-        )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 

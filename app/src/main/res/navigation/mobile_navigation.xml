@@ -12,35 +12,8 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="com.example.android_rave_controller.ui.dashboard.DashboardFragment"
-        android:label="@string/title_dashboard"
-        tools:layout="@layout/fragment_dashboard" >
-        <action
-            android:id="@+id/action_navigation_dashboard_to_navigation_controls"
-            app:destination="@id/navigation_controls" />
-        <argument
-            android:name="deviceName"
-            app:argType="string"
-            app:nullable="true"
-            android:defaultValue="Not Connected" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="com.example.android_rave_controller.ui.notifications.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
-
-    <fragment
-        android:id="@+id/navigation_controls"
-        android:name="com.example.android_rave_controller.ui.controls.ControlsFragment"
-        android:label="Debug Buttons"
-        tools:layout="@layout/fragment_controls" />
-
-    <fragment
         android:id="@+id/navigation_segments"
-        android:name="com.example.android_rave_controller.SegmentsFragment"
+        android:name="com.example.android_rave_controller.ui.segments.SegmentsFragment"
         android:label="@string/title_segments"
         tools:layout="@layout/fragment_segments" />
 

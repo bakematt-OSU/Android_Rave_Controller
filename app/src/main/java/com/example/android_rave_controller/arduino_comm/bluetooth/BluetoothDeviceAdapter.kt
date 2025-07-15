@@ -1,4 +1,4 @@
-package com.example.android_rave_controller.ui.bluetooth
+package com.example.android_rave_controller.arduino_comm.bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice

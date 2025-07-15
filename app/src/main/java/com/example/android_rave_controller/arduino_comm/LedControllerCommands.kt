@@ -1,4 +1,4 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.arduino_comm
 
 object LedControllerCommands {
     const val CMD_SET_COLOR = 0x01

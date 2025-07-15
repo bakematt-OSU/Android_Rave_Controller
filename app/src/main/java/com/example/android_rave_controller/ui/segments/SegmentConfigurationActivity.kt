@@ -1,4 +1,4 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.ui.segments
 
 import android.os.Bundle
 import android.text.Editable
@@ -12,7 +12,7 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.android_rave_controller.models.Effect
+import com.example.android_rave_controller.R
 import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentViewModel

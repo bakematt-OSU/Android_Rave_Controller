@@ -1,4 +1,4 @@
-package com.example.android_rave_controller.ui.bluetooth
+package com.example.android_rave_controller.arduino_comm.bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -21,7 +21,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.android_rave_controller.BluetoothService
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
 

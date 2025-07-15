@@ -1,4 +1,4 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.arduino_comm.bluetooth
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

@@ -1,4 +1,4 @@
-package com.example.android_rave_controller
+package com.example.android_rave_controller.ui.segments
 
 import android.view.LayoutInflater
 import android.view.ViewGroup

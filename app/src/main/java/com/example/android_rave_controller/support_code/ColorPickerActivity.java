@@ -1,4 +1,4 @@
-package com.example.android_rave_controller;
+package com.example.android_rave_controller.support_code;
 
 import android.content.Intent;
 import android.os.Bundle;
