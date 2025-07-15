@@ -22,11 +22,9 @@ import kotlin.text.iterator
 
 object DeviceProtocolHandler {
 
-    // Removed 'const' keyword for these vals because .toByte() is not a compile-time constant.
-    // They are still effectively constants within this object.
     private val CMD_GET_STATUS: Byte = LedControllerCommands.CMD_GET_STATUS.toByte()
     private val CMD_BATCH_CONFIG: Byte = LedControllerCommands.CMD_BATCH_CONFIG.toByte()
-    private val CMD_ACK: Byte = LedControllerCommands.CMD_ACK.toByte() // CMD_ACK is now defined in LedControllerCommands.kt
+    private val CMD_ACK: Byte = LedControllerCommands.CMD_ACK.toByte()
     private val CMD_CLEAR_SEGMENTS: Byte = LedControllerCommands.CMD_CLEAR_SEGMENTS.toByte()
     private val CMD_GET_LED_COUNT: Byte = LedControllerCommands.CMD_GET_LED_COUNT.toByte()
     private val CMD_SET_LED_COUNT: Byte = LedControllerCommands.CMD_SET_LED_COUNT.toByte()
@@ -45,25 +43,31 @@ object DeviceProtocolHandler {
         applicationContext = context
     }
 
-
     fun requestDeviceStatus() {
         responseBuffer.clear()
         openBraceCount = 0
         val command = byteArrayOf(CMD_GET_STATUS)
+        // Add to front of queue if it's a high-priority command or if we want to ensure it's sent next
+        // For initial status, it's good to prioritize.
         commandQueue.add(command)
         if (!isSendingCommand) {
             sendNextCommandFromQueue()
         }
     }
 
+    // This function is called by BluetoothService when a write operation completes successfully.
     fun onCommandSent() {
-        isSendingCommand = false
-        sendNextCommandFromQueue()
+        isSendingCommand = false // Mark the current command as finished
+        sendNextCommandFromQueue() // Try to send the next command in the queue
     }
 
     private fun sendNextCommandFromQueue() {
         if (commandQueue.isEmpty()) {
             isSendingCommand = false
+            return
+        }
+        if (isSendingCommand) {
+            // A command is already in flight, wait for its completion callback.
             return
         }
         isSendingCommand = true
@@ -74,7 +78,7 @@ object DeviceProtocolHandler {
     }
 
     fun sendFullConfiguration(segments: List<Segment>, effects: List<String>) {
-        commandQueue.clear()
+        commandQueue.clear() // Clear existing commands if sending a full config
         val transportSegments = segments.map { segment ->
             SegmentForTransport(
                 id = segment.id,
@@ -114,13 +118,10 @@ object DeviceProtocolHandler {
         }
     }
 
-    // Commenting out sendParameterUpdate as there is no direct binary command for it
-    // in the current Arduino firmware. Individual parameter setting is handled via serial text.
     fun sendParameterUpdate(segmentId: String, effectName: String, paramName: String, value: Any) {
         Log.w("ProtocolHandler", "sendParameterUpdate not implemented via BLE. Firmware does not support direct binary parameter updates.")
         Log.w("ProtocolHandler", "Segment ID: $segmentId, Effect: $effectName, Param: $paramName, Value: $value")
     }
-
 
     fun requestLedCount() {
         val command = byteArrayOf(CMD_GET_LED_COUNT)
@@ -142,35 +143,34 @@ object DeviceProtocolHandler {
         }
     }
 
-
     fun parseResponse(bytes: ByteArray) {
         if (bytes.isNotEmpty()) {
             when (bytes[0]) {
                 CMD_ACK -> {
                     Log.d("ProtocolHandler", "ACK received. Sending next command.")
-                    onCommandSent()
+                    // The ACK is a response from Arduino, it does not mean a command sent by Android is finished.
+                    // The onCommandSent() is called by BluetoothService's onCharacteristicWrite.
                     return
                 }
-                LedControllerCommands.CMD_GET_LED_COUNT.toByte() -> { // Check for CMD_GET_LED_COUNT response directly
+                LedControllerCommands.CMD_GET_LED_COUNT.toByte() -> {
                     if (bytes.size >= 3) {
                         val ledCount = (bytes[1].toInt() and 0xFF shl 8) or (bytes[2].toInt() and 0xFF)
                         Handler(Looper.getMainLooper()).post {
                             liveLedCount.value = ledCount
                         }
                         Log.d("ProtocolHandler", "Received LED Count: $ledCount")
-                        onCommandSent() // Acknowledge completion of this command
+                        // No onCommandSent() here, as it's a response, not a confirmation of a sent command.
                     } else {
                         Log.e("ProtocolHandler", "Malformed LED Count response: ${bytes.joinToString()}")
                     }
                     return
                 }
-                0.toByte() -> { // This might be a generic heartbeat or unexpected single byte
+                0.toByte() -> {
                     Log.d("ProtocolHandler", "Heartbeat or unexpected single byte received and discarded.")
                     return
                 }
             }
         }
-
 
         val incomingText = bytes.toString(Charsets.UTF_8)
         for (char in incomingText) {
@@ -227,6 +227,7 @@ object DeviceProtocolHandler {
                                     EffectsRepository.updateEffects(updatedEffects)
                                 }
                                 Log.d("ProtocolHandler", "Successfully parsed and updated effect parameters for $effectName.")
+                                // No onCommandSent() here, as it's a response, not a confirmation of a sent command.
 
                             } else if (jsonObject.has("segments")) {
                                 val status = gson.fromJson(jsonString, Status::class.java)
@@ -240,6 +241,13 @@ object DeviceProtocolHandler {
                                     SegmentsRepository.updateSegments(status.segments)
                                 }
                                 Log.d("ProtocolHandler", "Successfully parsed and updated status.")
+
+                                // Request parameters for all effects after initial status is received
+                                status.effectNames.forEach { effectName ->
+                                    requestEffectParameters(effectName)
+                                }
+                                // No onCommandSent() here, as it's a response, not a confirmation of a sent command.
+
                             } else {
                                 Log.e("ProtocolHandler", "Unrecognized JSON format: $jsonString")
                             }

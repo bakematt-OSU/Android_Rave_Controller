@@ -42,7 +42,7 @@ object BluetoothService {
 
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
-        // Initialize DeviceProtocolHandler here as it depends on BluetoothService being initialized
+        // Initialize DeviceProtocolHandler here
         DeviceProtocolHandler.initialize(applicationContext)
     }
 
@@ -101,10 +101,15 @@ object BluetoothService {
             if (characteristic.uuid == rxCharacteristic?.uuid) { // Check if it's our RX characteristic
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     Log.d(TAG, "Write successful. Notifying handler to send next command.")
+                    // Only signal command sent if the write was successful
                     DeviceProtocolHandler.onCommandSent()
                 } else {
                     Log.e(TAG, "Write failed with status: $status")
                     showToast("BLE write failed: $status")
+                    // If write fails, we should still try to send the next command, but maybe with a delay or retry logic
+                    // For now, let's still signal onCommandSent to keep the queue moving, but logging the error.
+                    // A more robust solution would involve retries or explicit error handling in DeviceProtocolHandler.
+                    DeviceProtocolHandler.onCommandSent() // Still move the queue forward to avoid deadlock
                 }
             }
         }
@@ -122,8 +127,9 @@ object BluetoothService {
             super.onDescriptorWrite(gatt, descriptor, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Descriptor write successful: ${descriptor.uuid}")
-                // If notifications are enabled successfully, consider connection fully established
                 showToast("Connected to Rave Controller!")
+                // After successful connection and notification setup, request device status
+                DeviceProtocolHandler.requestDeviceStatus() // Trigger the initial status request
             } else {
                 Log.e(TAG, "Descriptor write failed: $status")
                 showToast("Failed to enable notifications.")
@@ -178,10 +184,12 @@ object BluetoothService {
         bluetoothGatt?.let { gatt ->
             val result = gatt.writeCharacteristic(characteristic)
             if (!result) {
-                Log.e(TAG, "Failed to write characteristic.")
-                showToast("Failed to send command over BLE.")
+                Log.e(TAG, "Failed to write characteristic immediately (might be queued or rejected).")
+                // Do NOT call onCommandSent here, as it implies the command was successfully sent
+                // and the queue can move. The onCharacteristicWrite callback will handle this.
             } else {
-                Log.d(TAG, "Command sent to BLE: ${bytes.joinToString(prefix = "0x") { "%02X".format(it) }}")
+                Log.d(TAG, "Command write initiated to BLE: ${bytes.joinToString(prefix = "0x") { "%02X".format(it) }}")
+                // Do NOT call onCommandSent here either. Wait for the callback.
             }
         } ?: showToast("BluetoothGatt is null.")
     }
