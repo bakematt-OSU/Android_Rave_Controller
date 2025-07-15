@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/android_rave_controller/ui/segments/SegmentRangeSlider.kt
 package com.example.android_rave_controller.ui.segments
 
 import android.content.Context
@@ -8,6 +9,8 @@ import androidx.core.content.ContextCompat
 import com.example.android_rave_controller.R
 import com.example.android_rave_controller.models.Segment
 import com.google.android.material.slider.RangeSlider
+import kotlin.math.max
+import kotlin.math.min
 
 class SegmentRangeSlider @JvmOverloads constructor(
     context: Context,
@@ -28,12 +31,25 @@ class SegmentRangeSlider @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
+        // 🔹 **CRASH FIX** 🔹
+        // Clamp the active thumb values to be within the allowed range before drawing.
+        // This must be done *before* super.onDraw() is called.
+        if (values.size >= 2) {
+            val clampedValues = values.map {
+                min(max(it, valueFrom), valueTo)
+            }
+            if (values != clampedValues) {
+                setValues(clampedValues)
+            }
+        }
+
+        // Now, call the original onDraw and your custom drawing method
         super.onDraw(canvas)
         drawExistingSegments(canvas)
     }
 
     private fun drawExistingSegments(canvas: Canvas) {
-        if (existingSegments.isEmpty()) return
+        if (existingSegments.isEmpty() || valueTo <= 0) return
 
         val trackWidth = width - paddingStart - paddingEnd
         val trackTop = (height / 2f) - (trackHeight / 2f)

@@ -16,24 +16,24 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.android_rave_controller.R
+import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
+import com.example.android_rave_controller.databinding.ActivitySegmentConfigurationBinding
 import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentViewModel
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
-import com.example.android_rave_controller.databinding.ActivitySegmentConfigurationBinding
 import com.github.dhaval2404.colorpicker.ColorPickerDialog
 import com.github.dhaval2404.colorpicker.listener.ColorListener
 import com.github.dhaval2404.colorpicker.model.ColorShape
-import com.google.android.material.slider.RangeSlider // Import RangeSlider
-import com.google.android.material.slider.Slider // Keep Slider import if used elsewhere for single thumb slider
-
+import com.google.android.material.slider.RangeSlider
+import com.google.android.material.slider.Slider
 import java.util.UUID
+import kotlin.math.max
+import kotlin.math.min
 
 class SegmentConfigurationActivity : AppCompatActivity() {
 
@@ -46,124 +46,129 @@ class SegmentConfigurationActivity : AppCompatActivity() {
     private lateinit var dynamicParametersLayout: LinearLayout
     private var currentSelectedEffect: Effect? = null
 
+    // Flag to ensure LED count-dependent logic runs only once.
+    private var hasInitializedWithLedCount = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySegmentConfigurationBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize views
+        dynamicParametersLayout = binding.dynamicParametersLayout
         segmentToEdit = intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT")
 
-        // Use binding to access views - ALL REFERENCES ARE NOW CORRECTED
-        val nameEditText: EditText = binding.editTextSegmentName
-        val startLedEditText: EditText = binding.editTextStartLed
-        val endLedEditText: EditText = binding.editTextEndLed
-        val ledRangeSlider: SegmentRangeSlider = binding.rangeSliderLed
-        val effectSpinner: Spinner = binding.spinnerEffect
-        val brightnessSeekBar: SeekBar = binding.seekbarBrightness
-        val saveButton: Button = binding.buttonSaveSegment
-        val cancelButton: Button = binding.buttonCancel
-        val deleteButton: Button = binding.buttonDelete
+        // Setup the UI that doesn't depend on LED count yet
+        setupStaticUI()
+        setupListeners()
+        setupViewModels()
 
-        // Initialize dynamic parameters layout
-        dynamicParametersLayout = binding.dynamicParametersLayout
+        // Request LED count from device. The observer will handle the rest of the setup.
+        DeviceProtocolHandler.requestLedCount()
+    }
 
+    /**
+     * Sets up UI elements that are not dependent on the async LED count.
+     */
+    private fun setupStaticUI() {
+        if (segmentToEdit != null) {
+            binding.editTextSegmentName.setText(segmentToEdit!!.name)
+            binding.seekbarBrightness.progress = segmentToEdit!!.brightness
+            binding.buttonDelete.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Sets up LiveData observers. The critical logic for setting up the slider
+     * is now inside the liveLedCount observer to prevent race conditions.
+     */
+    private fun setupViewModels() {
         val effectsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_layout, mutableListOf())
         effectsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_layout)
-        effectSpinner.adapter = effectsAdapter
+        binding.spinnerEffect.adapter = effectsAdapter
 
-        effectsViewModel.effects.observe(this) { effects: List<Effect> ->
+        effectsViewModel.effects.observe(this) { effects ->
             val effectNames = effects.map { it.name }
             effectsAdapter.clear()
             effectsAdapter.addAll(effectNames)
             effectsAdapter.notifyDataSetChanged()
 
+            // Set spinner selection if editing an existing segment
             segmentToEdit?.let { segment ->
                 val effectPosition = effectNames.indexOf(segment.effect)
                 if (effectPosition >= 0) {
-                    effectSpinner.setSelection(effectPosition)
-                    currentSelectedEffect = effects.find { it.name == segment.effect }
-                    currentSelectedEffect?.let { effect ->
-                        if (effect.parameters.isNotEmpty()) {
-                            buildDynamicParametersUi(effect.parameters)
-                        } else {
-                            DeviceProtocolHandler.requestEffectParameters(effect.name)
-                        }
-                    }
-                }
-            }
-            currentSelectedEffect?.let { selectedEffect ->
-                val updatedEffect = effects.find { it.name == selectedEffect.name }
-                if (updatedEffect != null && updatedEffect.parameters.isNotEmpty() && updatedEffect != selectedEffect) {
-                    currentSelectedEffect = updatedEffect
-                    buildDynamicParametersUi(updatedEffect.parameters)
+                    binding.spinnerEffect.setSelection(effectPosition)
                 }
             }
         }
 
-        segmentViewModel.segments.observe(this) { segments: List<Segment> ->
-            ledRangeSlider.setExistingSegments(segments)
+        segmentViewModel.segments.observe(this) { segments ->
+            // Pass existing segments to the custom slider for drawing
+            binding.rangeSliderLed.setExistingSegments(segments.filter { it.id != segmentToEdit?.id })
         }
 
-        DeviceProtocolHandler.liveLedCount.observe(this) { ledCount: Int ->
-            ledRangeSlider.valueTo = ledCount.toFloat()
-            segmentToEdit?.let {
-                if (it.endLed.toFloat() >= ledCount.toFloat()) {
-                    ledRangeSlider.values = listOf(it.startLed.toFloat(), (ledCount - 1).toFloat())
-                    endLedEditText.setText((ledCount - 1).toString())
+        // The core of the crash fix.
+        // All logic dependent on the LED count is now safely inside this observer.
+        DeviceProtocolHandler.liveLedCount.observe(this) { ledCount ->
+            // Ensure this initialization logic runs only once when a valid ledCount is received.
+            if (ledCount > 0 && !hasInitializedWithLedCount) {
+                hasInitializedWithLedCount = true
+                val slider = binding.rangeSliderLed
+
+                // 1. Set the slider's valid range FIRST.
+                slider.valueFrom = 0f
+                slider.valueTo = (ledCount - 1).toFloat() // Max value is count - 1
+
+                // 2. Now, it's safe to set the slider's thumb values.
+                if (segmentToEdit != null) {
+                    // We are editing: Use the segment's values, but clamp them to the valid range.
+                    val start = max(slider.valueFrom, segmentToEdit!!.startLed.toFloat())
+                    val end = min(slider.valueTo, segmentToEdit!!.endLed.toFloat())
+                    slider.values = listOf(start, end)
+                } else {
+                    // We are creating a new segment: Set default values.
+                    slider.values = listOf(slider.valueFrom, min(slider.valueTo, 50f))
                 }
-            }
-            if (segmentToEdit == null && endLedEditText.text.toString().isEmpty()) {
-                startLedEditText.setText(ledRangeSlider.getValues()[0].toInt().toString()) // Use getValues()
-                endLedEditText.setText(ledRangeSlider.getValues()[1].toInt().toString()) // Use getValues()
+
+                // Update EditTexts to reflect the (potentially clamped) slider values
+                binding.editTextStartLed.setText(slider.values[0].toInt().toString())
+                binding.editTextEndLed.setText(slider.values[1].toInt().toString())
             }
         }
-        DeviceProtocolHandler.requestLedCount()
+    }
 
-
-        // Corrected type for `slider` parameter to RangeSlider
-        ledRangeSlider.addOnChangeListener { slider: RangeSlider, _, _ ->
-            isUpdatingFromSlider = true
-            val start = slider.getValues()[0].toInt() // Use getValues()
-            val end = slider.getValues()[1].toInt() // Use getValues()
-            startLedEditText.setText(start.toString())
-            endLedEditText.setText(end.toString())
-            isUpdatingFromSlider = false
+    /**
+     * Sets up all the necessary listeners for the UI components.
+     */
+    private fun setupListeners() {
+        binding.rangeSliderLed.addOnChangeListener { slider, _, fromUser ->
+            if (fromUser) {
+                isUpdatingFromSlider = true
+                binding.editTextStartLed.setText(slider.values[0].toInt().toString())
+                binding.editTextEndLed.setText(slider.values[1].toInt().toString())
+                isUpdatingFromSlider = false
+            }
         }
 
         val textWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                if (!isUpdatingFromSlider) {
-                    val start = s.toString().toFloatOrNull() ?: ledRangeSlider.getValues()[0] // Use getValues()
-                    val end = endLedEditText.text.toString().toFloatOrNull() ?: ledRangeSlider.getValues()[1] // Use getValues()
-                    // Added explicit type for `start` and `end`
-                    val startFloat: Float = start
-                    val endFloat: Float = end
+                if (isUpdatingFromSlider || !hasInitializedWithLedCount) return
 
-                    if (startFloat <= endFloat && startFloat >= ledRangeSlider.valueFrom && endFloat <= ledRangeSlider.valueTo) {
-                        ledRangeSlider.values = listOf(startFloat, endFloat)
-                    }
+                val slider = binding.rangeSliderLed
+                val start = binding.editTextStartLed.text.toString().toFloatOrNull() ?: slider.values[0]
+                val end = binding.editTextEndLed.text.toString().toFloatOrNull() ?: slider.values[1]
+
+                if (start <= end && start >= slider.valueFrom && end <= slider.valueTo) {
+                    slider.values = listOf(start, end)
                 }
             }
         }
-        startLedEditText.addTextChangedListener(textWatcher)
-        endLedEditText.addTextChangedListener(textWatcher)
+        binding.editTextStartLed.addTextChangedListener(textWatcher)
+        binding.editTextEndLed.addTextChangedListener(textWatcher)
 
-        if (segmentToEdit != null) {
-            nameEditText.setText(segmentToEdit!!.name)
-            if (segmentToEdit!!.endLed.toFloat() > ledRangeSlider.valueTo) {
-                ledRangeSlider.valueTo = segmentToEdit!!.endLed.toFloat()
-            }
-            ledRangeSlider.values = listOf(segmentToEdit!!.startLed.toFloat(), segmentToEdit!!.endLed.toFloat())
-            brightnessSeekBar.progress = segmentToEdit!!.brightness
-            deleteButton.visibility = View.VISIBLE
-        } else {
-            startLedEditText.setText(ledRangeSlider.getValues()[0].toInt().toString()) // Use getValues()
-            endLedEditText.setText(ledRangeSlider.getValues()[1].toInt().toString()) // Use getValues()
-        }
-
-        effectSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        binding.spinnerEffect.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedEffectName = parent?.getItemAtPosition(position).toString()
                 currentSelectedEffect = effectsViewModel.effects.value?.find { it.name == selectedEffectName }
@@ -178,63 +183,52 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     }
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) { /* Do nothing */ }
         }
 
-
-        saveButton.setOnClickListener {
-            val name = nameEditText.text.toString()
-            val start = ledRangeSlider.getValues()[0].toInt() // Use getValues()
-            val end = ledRangeSlider.getValues()[1].toInt() // Use getValues()
-            val effect = effectSpinner.selectedItem.toString()
-            val brightness = brightnessSeekBar.progress
-
-            if (name.isNotEmpty()) {
-                if (segmentToEdit == null) {
-                    val newSegment = Segment(
-                        id = UUID.randomUUID().toString(),
-                        name = name,
-                        startLed = start,
-                        endLed = end,
-                        effect = effect,
-                        brightness = brightness
-                    )
-                    segmentViewModel.addSegment(newSegment)
-                    Toast.makeText(this, "$name saved", Toast.LENGTH_SHORT).show()
-                } else {
-                    val updatedSegment = segmentToEdit!!.copy(
-                        name = name,
-                        startLed = start,
-                        endLed = end,
-                        effect = effect,
-                        brightness = brightness
-                    )
-                    segmentViewModel.updateSegment(updatedSegment)
-                    Toast.makeText(this, "$name updated", Toast.LENGTH_SHORT).show()
-                }
-                currentSelectedEffect?.let { effectWithParams ->
-                    for ((paramName, paramValue) in effectWithParams.parameters) {
-                        val paramView = dynamicParametersLayout.findViewWithTag<View>(paramName)
-                        val updatedValue: Any = when (paramView) {
-                            is Slider -> paramView.value.let { if (effectWithParams.parameters[paramName] is Int) it.toInt() else it.toFloat() }
-                            is CheckBox -> paramView.isChecked
-                            is Button -> (paramView.background as? android.graphics.drawable.ColorDrawable)?.color ?: (effectWithParams.parameters[paramName] as? Int) ?: 0
-                            else -> paramValue
-                        }
-                    }
-                }
-                finish()
-            } else {
+        binding.buttonSaveSegment.setOnClickListener {
+            val name = binding.editTextSegmentName.text.toString()
+            if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter a segment name", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
-        }
 
-        cancelButton.setOnClickListener {
+            val start = binding.rangeSliderLed.values[0].toInt()
+            val end = binding.rangeSliderLed.values[1].toInt()
+            val effect = binding.spinnerEffect.selectedItem.toString()
+            val brightness = binding.seekbarBrightness.progress
+
+            if (segmentToEdit == null) {
+                val newSegment = Segment(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    startLed = start,
+                    endLed = end,
+                    effect = effect,
+                    brightness = brightness
+                )
+                segmentViewModel.addSegment(newSegment)
+                Toast.makeText(this, "$name saved", Toast.LENGTH_SHORT).show()
+            } else {
+                val updatedSegment = segmentToEdit!!.copy(
+                    name = name,
+                    startLed = start,
+                    endLed = end,
+                    effect = effect,
+                    brightness = brightness
+                )
+                segmentViewModel.updateSegment(updatedSegment)
+                Toast.makeText(this, "$name updated", Toast.LENGTH_SHORT).show()
+            }
+            // Logic to handle saving dynamic parameters would go here
             finish()
         }
 
-        deleteButton.setOnClickListener {
+        binding.buttonCancel.setOnClickListener {
+            finish()
+        }
+
+        binding.buttonDelete.setOnClickListener {
             segmentToEdit?.let {
                 segmentViewModel.deleteSegment(it.id)
                 Toast.makeText(this, "${it.name} deleted", Toast.LENGTH_SHORT).show()
@@ -268,7 +262,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             paramLayout.addView(paramNameTextView)
 
             val uiComponent: View? = when {
-                paramValue is Int && (paramName.contains("color", ignoreCase = true) || (paramValue >= 0 && paramValue <= 0xFFFFFF)) -> {
+                paramName.contains("color", ignoreCase = true) && paramValue is Int -> {
                     Button(this).apply {
                         text = "Select Color"
                         setBackgroundColor(paramValue)
@@ -283,7 +277,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                                     override fun onColorSelected(color: Int, colorHex: String) {
                                         setBackgroundColor(color)
                                         setTextColor(if (color.isLightColor()) Color.BLACK else Color.WHITE)
-                                        currentSelectedEffect = currentSelectedEffect!!.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = color })
+                                        currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = color })
                                     }
                                 })
                                 .show()
@@ -291,17 +285,15 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     }
                 }
                 paramValue is Number -> {
-                    val sliderValue = paramValue.toFloat()
                     Slider(this).apply {
-                        valueFrom = 0f
-                        valueTo = 255f
-                        value = sliderValue
-                        stepSize = if (paramValue is Int) 1f else 0.01f
-
+                        valueFrom = 0f // Placeholder
+                        valueTo = 255f // Placeholder
+                        value = paramValue.toFloat()
+                        stepSize = if (paramValue is Int || paramValue is Long) 1f else 0.01f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.7f)
-                        addOnChangeListener { _, value: Float, _ ->
-                            val actualValue: Any = if (paramValue is Int) value.toInt() else value
-                            currentSelectedEffect = currentSelectedEffect!!.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = actualValue })
+                        addOnChangeListener { _, value, _ ->
+                            val actualValue: Any = if (paramValue is Int || paramValue is Long) value.toInt() else value
+                            currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = actualValue })
                         }
                     }
                 }
@@ -310,7 +302,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                         isChecked = paramValue
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.7f)
                         setOnCheckedChangeListener { _, isChecked ->
-                            currentSelectedEffect = currentSelectedEffect!!.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = isChecked })
+                            currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = isChecked })
                         }
                     }
                 }
