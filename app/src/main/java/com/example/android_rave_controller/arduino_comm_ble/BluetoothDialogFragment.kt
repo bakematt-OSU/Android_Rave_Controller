@@ -10,6 +10,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -25,6 +26,7 @@ import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
+import android.app.Activity // Import android.app.Activity
 
 class BluetoothDialogFragment : DialogFragment() {
 
@@ -45,27 +47,27 @@ class BluetoothDialogFragment : DialogFragment() {
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
 
+    // CORRECTED: Use the LED_SERVICE_UUID from your Arduino firmware
     private val scanFilter = ScanFilter.Builder()
-        .setServiceUuid(ParcelUuid(UUID.fromString("0000180A-0000-1000-8000-00805F9B34FB")))
+        .setServiceUuid(ParcelUuid(UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")))
         .build()
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            if (device != null) { // Removed device.name != null
-                if (ActivityCompat.checkSelfPermission(
+            // Allow devices without a name to be listed, but still filter for unique addresses
+            if (device != null && !devices.any { it.address == device.address }) {
+                if (ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
                     return
                 }
-                if (!devices.any { it.address == device.address }) {
-                    devices.add(device)
-                    // Ensure UI updates are on the main thread
-                    activity?.runOnUiThread {
-                        deviceListAdapter.notifyItemInserted(devices.size - 1)
-                    }
+                devices.add(device)
+                // Ensure UI updates are on the main thread
+                activity?.runOnUiThread {
+                    deviceListAdapter.notifyItemInserted(devices.size - 1)
                 }
             }
         }
@@ -78,7 +80,12 @@ class BluetoothDialogFragment : DialogFragment() {
     private val requestMultiplePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             if (permissions.entries.all { it.value }) {
-                startScanning()
+                // Permissions granted, now check if Bluetooth is enabled
+                if (bluetoothAdapter?.isEnabled == true) {
+                    startScanning()
+                } else {
+                    promptEnableBluetooth()
+                }
             } else {
                 Toast.makeText(
                     context,
@@ -87,6 +94,15 @@ class BluetoothDialogFragment : DialogFragment() {
                 ).show()
             }
         }
+
+    private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        // CORRECTED: Use android.app.Activity.RESULT_OK
+        if (result.resultCode == Activity.RESULT_OK) {
+            startScanning()
+        } else {
+            Toast.makeText(context, "Bluetooth must be enabled to scan for devices.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = ActivityBluetoothBinding.inflate(inflater, container, false)
@@ -119,7 +135,6 @@ class BluetoothDialogFragment : DialogFragment() {
             }
         }
     }
-
 
     override fun onStart() {
         super.onStart()
@@ -162,11 +177,25 @@ class BluetoothDialogFragment : DialogFragment() {
         if (missingPermissions.isNotEmpty()) {
             requestMultiplePermissions.launch(missingPermissions.toTypedArray())
         } else {
-            startScanning()
+            // Permissions are granted, now check if Bluetooth is enabled
+            if (bluetoothAdapter?.isEnabled == true) {
+                startScanning()
+            } else {
+                promptEnableBluetooth()
+            }
         }
     }
 
+    private fun promptEnableBluetooth() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        enableBluetoothLauncher.launch(enableBtIntent)
+    }
+
     private fun startScanning() {
+        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+            Toast.makeText(context, "Bluetooth is not enabled.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.BLUETOOTH_SCAN

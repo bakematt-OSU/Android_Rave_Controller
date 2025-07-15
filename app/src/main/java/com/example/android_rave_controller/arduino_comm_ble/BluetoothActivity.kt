@@ -41,23 +41,21 @@ class BluetoothActivity : AppCompatActivity() {
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
 
-    // Scan filter updated to use the "180A" service UUID.
+    // CORRECTED: Use the LED_SERVICE_UUID from your Arduino firmware
     private val scanFilter = ScanFilter.Builder()
-        .setServiceUuid(ParcelUuid(UUID.fromString("0000180A-0000-1000-8000-00805F9B34FB")))
+        .setServiceUuid(ParcelUuid(UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")))
         .build()
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            if (device != null) { // Removed device.name != null to allow unnamed devices to appear
-                if (ActivityCompat.checkSelfPermission(this@BluetoothActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            // Allow devices without a name to be listed, but still filter for unique addresses
+            if (device != null && !devices.any { it.address == device.address }) {
+                if (ContextCompat.checkSelfPermission(this@BluetoothActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return
                 }
-                // Only add if not already in the list to prevent duplicates
-                if (!devices.any { it.address == device.address }) {
-                    devices.add(device)
-                    deviceListAdapter.notifyItemInserted(devices.size - 1)
-                }
+                devices.add(device)
+                deviceListAdapter.notifyItemInserted(devices.size - 1)
             }
         }
 
@@ -69,11 +67,24 @@ class BluetoothActivity : AppCompatActivity() {
     private val requestMultiplePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             if (permissions.entries.all { it.value }) {
-                startScanning()
+                // Permissions granted, now check if Bluetooth is enabled
+                if (bluetoothAdapter?.isEnabled == true) {
+                    startScanning()
+                } else {
+                    promptEnableBluetooth()
+                }
             } else {
                 Toast.makeText(this, "Permissions are required for Bluetooth functionality.", Toast.LENGTH_LONG).show()
             }
         }
+
+    private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            startScanning()
+        } else {
+            Toast.makeText(this, "Bluetooth must be enabled to scan for devices.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +96,6 @@ class BluetoothActivity : AppCompatActivity() {
 
         // Setup RecyclerView
         setupRecyclerView()
-
 
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth is not supported on this device.", Toast.LENGTH_LONG).show()
@@ -100,7 +110,8 @@ class BluetoothActivity : AppCompatActivity() {
         BluetoothService.connectionState.observe(this) { isConnected: Boolean ->
             if (isConnected) {
                 val resultIntent = Intent().apply {
-                    putExtra("deviceName", BluetoothService.connectedDeviceName) // Get name from service
+                    // Pass the connected device name from BluetoothService
+                    putExtra("deviceName", BluetoothService.connectedDeviceName)
                 }
                 setResult(RESULT_OK, resultIntent)
                 finish()
@@ -110,7 +121,6 @@ class BluetoothActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         deviceListAdapter = BluetoothDeviceAdapter(devices) { device ->
-            // This is the click listener lambda
             stopScanning()
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
@@ -123,7 +133,6 @@ class BluetoothActivity : AppCompatActivity() {
         binding.devicesRecyclerView.adapter = deviceListAdapter
         binding.devicesRecyclerView.layoutManager = LinearLayoutManager(this)
     }
-
 
     private fun checkPermissionsAndScan() {
         val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -142,11 +151,25 @@ class BluetoothActivity : AppCompatActivity() {
         if (missingPermissions.isNotEmpty()) {
             requestMultiplePermissions.launch(missingPermissions.toTypedArray())
         } else {
-            startScanning()
+            // Permissions are granted, now check if Bluetooth is enabled
+            if (bluetoothAdapter?.isEnabled == true) {
+                startScanning()
+            } else {
+                promptEnableBluetooth()
+            }
         }
     }
 
+    private fun promptEnableBluetooth() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        enableBluetoothLauncher.launch(enableBtIntent)
+    }
+
     private fun startScanning() {
+        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+            Toast.makeText(this, "Bluetooth is not enabled.", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Bluetooth scan permission not granted.", Toast.LENGTH_SHORT).show()
@@ -159,6 +182,7 @@ class BluetoothActivity : AppCompatActivity() {
     }
 
     private fun stopScanning() {
+        if (bleScanner == null) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
             // No Toast here, as it might be called on activity destruction
