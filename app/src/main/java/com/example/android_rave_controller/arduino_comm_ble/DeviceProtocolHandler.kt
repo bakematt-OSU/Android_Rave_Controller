@@ -16,6 +16,8 @@ import com.example.android_rave_controller.models.Status
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.LinkedList
 import java.util.Queue
 import kotlin.text.iterator
@@ -29,6 +31,7 @@ object DeviceProtocolHandler {
     private val CMD_GET_LED_COUNT: Byte = LedControllerCommands.CMD_GET_LED_COUNT.toByte()
     private val CMD_SET_LED_COUNT: Byte = LedControllerCommands.CMD_SET_LED_COUNT.toByte()
     private val CMD_GET_EFFECT_INFO: Byte = LedControllerCommands.CMD_GET_EFFECT_INFO.toByte()
+    private val CMD_SET_EFFECT_PARAMETER: Byte = LedControllerCommands.CMD_SET_EFFECT_PARAMETER.toByte() // New: Reference the new command
 
     private val responseBuffer = StringBuilder()
     private val gson = Gson()
@@ -118,9 +121,66 @@ object DeviceProtocolHandler {
         }
     }
 
-    fun sendParameterUpdate(segmentId: String, effectName: String, paramName: String, value: Any) {
-        Log.w("ProtocolHandler", "sendParameterUpdate not implemented via BLE. Firmware does not support direct binary parameter updates.")
-        Log.w("ProtocolHandler", "Segment ID: $segmentId, Effect: $effectName, Param: $paramName, Value: $value")
+    // New function to send parameter updates
+    fun sendParameterUpdate(segmentId: String, paramName: String, paramType: String, value: Any) {
+        val segIndex = SegmentsRepository.segments.value?.indexOfFirst { it.id == segmentId } ?: -1
+        if (segIndex == -1) {
+            Log.e("ProtocolHandler", "Segment with ID '$segmentId' not found.")
+            return
+        }
+
+        val paramTypeOrdinal = when (paramType) {
+            "integer" -> 0 // ParamType::INTEGER ordinal
+            "float" -> 1    // ParamType::FLOAT ordinal
+            "color" -> 2    // ParamType::COLOR ordinal
+            "boolean" -> 3  // ParamType::BOOLEAN ordinal
+            else -> {
+                Log.e("ProtocolHandler", "Unknown parameter type: $paramType")
+                return
+            }
+        }
+
+        val paramNameBytes = paramName.toByteArray(Charsets.UTF_8)
+        val nameLen = paramNameBytes.size.toByte()
+
+        val valueBytes = when (paramType) {
+            "integer" -> {
+                val intValue = value as Int
+                ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(intValue).array()
+            }
+            "float" -> {
+                val floatValue = value as Float
+                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(floatValue).array() // Assuming Arduino uses little-endian for float
+            }
+            "color" -> {
+                val colorValue = value as Int // Android color is ARGB
+                byteArrayOf(
+                    0x00, // Alpha byte (unused by Arduino's parsing in BinaryCommandHandler.cpp)
+                    (colorValue shr 16 and 0xFF).toByte(), // Red
+                    (colorValue shr 8 and 0xFF).toByte(),  // Green
+                    (colorValue and 0xFF).toByte()         // Blue
+                )
+            }
+            "boolean" -> {
+                val boolValue = value as Boolean
+                byteArrayOf(if (boolValue) 0x01 else 0x00)
+            }
+            else -> byteArrayOf()
+        }
+
+        val commandPayload = byteArrayOf(
+            segIndex.toByte(),
+            paramTypeOrdinal.toByte(),
+            nameLen
+        ) + paramNameBytes + valueBytes
+
+        val fullCommand = byteArrayOf(CMD_SET_EFFECT_PARAMETER) + commandPayload
+
+        commandQueue.add(fullCommand)
+        if (!isSendingCommand) {
+            sendNextCommandFromQueue()
+        }
+        Log.d("ProtocolHandler", "Queued parameter update for Segment: $segIndex, Param: $paramName ($paramType) = $value")
     }
 
     fun requestLedCount() {

@@ -221,6 +221,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                 Toast.makeText(this, "$name updated", Toast.LENGTH_SHORT).show()
             }
             // Logic to handle saving dynamic parameters would go here
+            // This is handled by the individual parameter UI elements calling sendParameterUpdate
             finish()
         }
 
@@ -278,6 +279,10 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                                         setBackgroundColor(color)
                                         setTextColor(if (color.isLightColor()) Color.BLACK else Color.WHITE)
                                         currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = color })
+                                        // Send color update to Arduino
+                                        segmentToEdit?.let { seg ->
+                                            DeviceProtocolHandler.sendParameterUpdate(seg.id, paramName, "color", color)
+                                        }
                                     }
                                 })
                                 .show()
@@ -294,6 +299,11 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                         addOnChangeListener { _, value, _ ->
                             val actualValue: Any = if (paramValue is Int || paramValue is Long) value.toInt() else value
                             currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = actualValue })
+                            // Send number update to Arduino
+                            segmentToEdit?.let { seg ->
+                                val type = if (paramValue is Int || paramValue is Long) "integer" else "float"
+                                DeviceProtocolHandler.sendParameterUpdate(seg.id, paramName, type, actualValue)
+                            }
                         }
                     }
                 }
@@ -303,6 +313,10 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.7f)
                         setOnCheckedChangeListener { _, isChecked ->
                             currentSelectedEffect = currentSelectedEffect?.copy(parameters = currentSelectedEffect!!.parameters.toMutableMap().apply { this[paramName] = isChecked })
+                            // Send boolean update to Arduino
+                            segmentToEdit?.let { seg ->
+                                DeviceProtocolHandler.sendParameterUpdate(seg.id, paramName, "boolean", isChecked)
+                            }
                         }
                     }
                 }
