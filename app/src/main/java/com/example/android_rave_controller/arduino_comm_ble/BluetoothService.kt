@@ -52,7 +52,8 @@ object BluetoothService {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 _connectionState.postValue(true)
                 bluetoothGatt = gatt // Store the gatt object
-                connectedDeviceName = gatt.device.name
+                // The connectedDeviceName is now set by the connect function itself,
+                // so we don't re-read gatt.device.name here.
                 Log.i(TAG, "Connected to GATT server. Discovering services...")
                 if (ContextCompat.checkSelfPermission(applicationContext, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     showToast("Bluetooth permissions not granted for service discovery.")
@@ -138,12 +139,13 @@ object BluetoothService {
         }
     }
 
-    // Connect function now takes BluetoothDevice
-    fun connect(context: Context, device: BluetoothDevice) {
+    // Connect function now takes BluetoothDevice and initialDeviceName
+    fun connect(context: Context, device: BluetoothDevice, initialDeviceName: String?) {
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             showToast("Bluetooth permissions not granted for connection.")
             return
         }
+        connectedDeviceName = initialDeviceName // Set the name immediately upon initiating connection
         // This will trigger onConnectionStateChange in gattCallback
         device.connectGatt(context, false, gattCallback)
     }

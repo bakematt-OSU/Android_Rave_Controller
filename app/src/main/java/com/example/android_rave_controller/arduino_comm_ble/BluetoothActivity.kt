@@ -6,8 +6,8 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,11 +17,10 @@ import android.os.ParcelUuid
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
+import androidx.recyclerview.widget.LinearLayoutManager
 
 class BluetoothActivity : AppCompatActivity() {
 
@@ -127,7 +126,7 @@ class BluetoothActivity : AppCompatActivity() {
                 return@BluetoothDeviceAdapter
             }
             selectedDeviceName = device.name // Store the device name for when connected
-            BluetoothService.connect(this, device) // Pass the BluetoothDevice directly
+            BluetoothService.connect(this, device, device.name) // Pass device.name here
             Toast.makeText(this, "Connecting to ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
         }
         binding.devicesRecyclerView.adapter = deviceListAdapter

@@ -156,7 +156,7 @@ class BluetoothDialogFragment : DialogFragment() {
                 Toast.makeText(context, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@BluetoothDeviceAdapter
             }
-            BluetoothService.connect(requireContext(), device) // Pass the BluetoothDevice directly
+            BluetoothService.connect(requireContext(), device, device.name) // Pass device.name here
             Toast.makeText(context, "Connecting to ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
         }
         binding.devicesRecyclerView.adapter = deviceListAdapter
