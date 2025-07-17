@@ -1,3 +1,4 @@
+// src/main/java/com/example/android_rave_controller/ui/segments/SegmentsFragment.kt
 package com.example.android_rave_controller.ui.segments
 
 import android.app.AlertDialog
@@ -10,27 +11,22 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.example.android_rave_controller.R
+import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.FragmentSegmentsBinding
 import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectsRepository
-import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.RaveConfiguration
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentViewModel
-import com.example.android_rave_controller.models.SegmentsRepository
-
-// Change these imports if your handler/manager live elsewhere
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.support_code.ConfigurationManager
-import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
-import com.example.android_rave_controller.R
 
 class SegmentsFragment : Fragment() {
 
     private var _binding: FragmentSegmentsBinding? = null
     private val binding get() = _binding!!
     private val segmentViewModel: SegmentViewModel by activityViewModels()
-    private val effectsViewModel: EffectsViewModel by activityViewModels()
     private val connectionViewModel: ConnectionViewModel by activityViewModels()
 
     override fun onCreateView(
@@ -53,9 +49,8 @@ class SegmentsFragment : Fragment() {
             segmentsAdapter.updateSegments(segments)
         }
 
-        // Push, Add, Load, Save, and GetConfig buttons
         binding.buttonPush.setOnClickListener { pushConfiguration() }
-        binding.buttonAdd .setOnClickListener {
+        binding.buttonAdd.setOnClickListener {
             startActivity(Intent(activity, SegmentConfigurationActivity::class.java))
         }
         binding.buttonLoad.setOnClickListener { showLoadDialog() }
@@ -65,8 +60,9 @@ class SegmentsFragment : Fragment() {
                 .setTitle(getString(R.string.dialog_get_config_title))
                 .setMessage(getString(R.string.dialog_get_config_message))
                 .setPositiveButton(getString(R.string.dialog_yes)) { _, _ ->
+                    // Corrected: requestDeviceStatus is now the main entry point
                     DeviceProtocolHandler.requestDeviceStatus()
-                    Toast.makeText(context, "Requesting segment update…", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Refreshing configuration…", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton(getString(R.string.dialog_no), null)
                 .show()
@@ -85,57 +81,28 @@ class SegmentsFragment : Fragment() {
             Toast.makeText(context, "Please connect to a device first.", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val currentSegments = segmentViewModel.segments.value
-        val effectsList     = effectsViewModel.effects.value
-
-        if (currentSegments != null && effectsList != null) {
-            // Cast to List<Effect> to disambiguate map()
-            val effectNames = (effectsList as List<Effect>).map { it.name }
-
-            DeviceProtocolHandler.sendFullConfiguration(currentSegments, effectNames)
-            Toast.makeText(context, "Pushing configuration to device…", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(
-                context,
-                "Could not push configuration. Data is missing.",
-                Toast.LENGTH_LONG
-            ).show()
+        segmentViewModel.segments.value?.let {
+            if (it.isNotEmpty()) {
+                DeviceProtocolHandler.sendFullConfiguration(it)
+                Toast.makeText(context, "Pushing configuration…", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun showSaveDialog() {
-        val currentSegments = segmentViewModel.segments.value
-        val currentEffects  = effectsViewModel.effects.value
+        val currentSegments = segmentViewModel.segments.value ?: return
+        val currentEffects = EffectsRepository.effects.value?.map { it.name } ?: return
 
-        if (currentSegments.isNullOrEmpty() || currentEffects.isNullOrEmpty()) {
-            Toast.makeText(context, "No configuration to save.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val input = EditText(requireContext()).apply {
-            hint = "Configuration name"
-        }
-
+        val input = EditText(requireContext()).apply { hint = "Configuration name" }
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.dialog_save_config_title))
             .setView(input)
             .setPositiveButton(getString(R.string.button_save)) { _, _ ->
                 val filename = input.text.toString().trim()
                 if (filename.isNotEmpty()) {
-                    val effectNames = (currentEffects as List<Effect>).map { it.name }
-                    val configToSave = RaveConfiguration(
-                        segments = currentSegments,
-                        effects  = effectNames
-                    )
+                    val configToSave = RaveConfiguration(segments = currentSegments, effects = currentEffects)
                     ConfigurationManager.saveConfiguration(requireContext(), configToSave, filename)
-                    Toast.makeText(
-                        context,
-                        "Configuration '$filename' saved.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    Toast.makeText(context, "Filename cannot be empty.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "'$filename' saved.", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton(getString(R.string.button_cancel), null)
@@ -150,40 +117,21 @@ class SegmentsFragment : Fragment() {
         }
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.dialog_load_config_select_title))
-            .setItems(savedFiles) { _, which ->
-                loadConfiguration(savedFiles[which])
-            }
+            .setItems(savedFiles) { _, which -> loadConfiguration(savedFiles[which]) }
             .show()
     }
 
     private fun loadConfiguration(filename: String) {
         val loadedConfig = ConfigurationManager.loadConfiguration(requireContext(), filename)
         if (loadedConfig != null) {
-            SegmentsRepository.updateSegments(loadedConfig.segments)
-            EffectsRepository.updateEffects(
-                loadedConfig.effects.map { name -> Effect(name = name) }
-            )
-
+            segmentViewModel.segments.value = loadedConfig.segments.toMutableList()
+            EffectsRepository.updateEffects(loadedConfig.effects.map { Effect(it, emptyList()) })
             if (connectionViewModel.isConnected.value == true) {
                 pushConfiguration()
-                Toast.makeText(
-                    context,
-                    "Configuration '$filename' loaded and sent to device.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                Toast.makeText(
-                    context,
-                    "Configuration '$filename' loaded locally. Connect and push to sync.",
-                    Toast.LENGTH_LONG
-                ).show()
             }
+            Toast.makeText(context, "'$filename' loaded.", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(
-                context,
-                "Failed to load '$filename'.",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(context, "Failed to load '$filename'.", Toast.LENGTH_SHORT).show()
         }
     }
 
