@@ -1,148 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:padding="16dp">
+    android:fillViewport="true">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <EditText
-            android:id="@+id/edit_text_segment_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Segment Name (e.g., Main)"
-            android:inputType="text" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Give your segment a descriptive name."
-            android:textSize="12sp"
-            android:layout_marginStart="4dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="LED Range" />
+        android:gravity="center"
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
             <EditText
-                android:id="@+id/edit_text_start_led"
-                android:layout_width="0dp"
+                android:id="@+id/edit_text_segment_name"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:hint="Start"
-                android:inputType="number" />
-
-            <EditText
-                android:id="@+id/edit_text_end_led"
-                android:layout_width="0dp"
+                android:hint="Segment Name (e.g., Main)"
+                android:inputType="text" />
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:hint="End"
-                android:inputType="number" />
-        </LinearLayout>
+                android:text="Give your segment a descriptive name."
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"/>
 
-        <com.example.android_rave_controller.ui.segments.SegmentRangeSlider
-            android:id="@+id/range_slider_led"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:stepSize="1.0"
-            android:valueFrom="0"
-            android:valueTo="150"
-            app:values="@array/initial_slider_values" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Select the start and end LEDs. Existing segments are shown in purple."
-            android:textSize="12sp"
-            android:layout_marginStart="4dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="LED Range" />
 
-        <Spinner
-            android:id="@+id/spinner_effect"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Choose a lighting effect for this segment."
-            android:textSize="12sp"
-            android:layout_marginStart="4dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-        <!-- This is the dynamic parameters layout that was missing -->
-        <LinearLayout
-            android:id="@+id/dynamic_parameters_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="16dp" />
+                <EditText
+                    android:id="@+id/edit_text_start_led"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:hint="Start"
+                    android:inputType="number" />
+
+                <EditText
+                    android:id="@+id/edit_text_end_led"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:hint="End"
+                    android:inputType="number" />
+            </LinearLayout>
+
+            <com.example.android_rave_controller.ui.segments.SegmentRangeSlider
+                android:id="@+id/range_slider_led"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1.0"
+                android:valueFrom="0"
+                android:valueTo="150"
+                app:values="@array/initial_slider_values" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select the start and end LEDs. Existing segments are shown in purple."
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"/>
+
+            <Spinner
+                android:id="@+id/spinner_effect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose a lighting effect for this segment."
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"/>
+
+            <LinearLayout
+                android:id="@+id/dynamic_parameters_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp" />
 
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Brightness" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Brightness" />
 
-        <SeekBar
-            android:id="@+id/seekbar_brightness"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="255"
-            android:progress="128" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Control the brightness of only this segment."
-            android:textSize="12sp"
-            android:layout_marginStart="4dp"/>
+            <SeekBar
+                android:id="@+id/seekbar_brightness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="255"
+                android:progress="128" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Control the brightness of only this segment."
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"/>
 
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="horizontal">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/button_cancel"
+                    style="@style/MyButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/button_cancel" />
+
+                <Button
+                    android:id="@+id/button_save_segment"
+                    style="@style/MyButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/button_save" />
+            </LinearLayout>
 
             <Button
-                android:id="@+id/button_cancel"
+                android:id="@+id/button_delete"
                 style="@style/MyButtonStyle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:text="@string/button_cancel" />
+                android:layout_marginTop="8dp"
+                android:text="@string/button_delete"
+                android:visibility="gone" />
 
-            <Button
-                android:id="@+id/button_save_segment"
-                style="@style/MyButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="@string/button_save" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/button_delete"
-            style="@style/MyButtonStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/button_delete"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</RelativeLayout>
+    </RelativeLayout>
+</ScrollView>

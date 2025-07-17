@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -12,8 +14,6 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.SeekBar
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -24,17 +24,18 @@ import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandle
 import com.example.android_rave_controller.databinding.ActivitySegmentConfigurationBinding
 import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectParameter
+import com.example.android_rave_controller.models.EffectsRepository
 import com.example.android_rave_controller.models.EffectsViewModel
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentViewModel
 import com.github.dhaval2404.colorpicker.ColorPickerDialog
 import com.github.dhaval2404.colorpicker.listener.ColorListener
 import com.github.dhaval2404.colorpicker.model.ColorShape
-import com.google.android.material.slider.RangeSlider
 import com.google.android.material.slider.Slider
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 class SegmentConfigurationActivity : AppCompatActivity() {
 
@@ -47,6 +48,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
     private lateinit var dynamicParametersLayout: LinearLayout
     private var currentSelectedEffect: Effect? = null
     private var hasInitializedWithLedCount = false
+    private val stagedParameters = mutableMapOf<String, Any>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,19 +56,22 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         dynamicParametersLayout = binding.dynamicParametersLayout
-        segmentToEdit = intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT")
+        intent.getParcelableExtra<Segment>("EXTRA_SEGMENT_TO_EDIT")?.let {
+            segmentToEdit = it
+            // Pre-fill staged parameters if editing
+            stagedParameters.putAll(it.parameters ?: emptyMap())
+        }
 
         setupStaticUI()
         setupListeners()
         setupViewModels()
-
         DeviceProtocolHandler.requestLedCount()
     }
 
     private fun setupStaticUI() {
-        if (segmentToEdit != null) {
-            binding.editTextSegmentName.setText(segmentToEdit!!.name)
-            binding.seekbarBrightness.progress = segmentToEdit!!.brightness
+        segmentToEdit?.let {
+            binding.editTextSegmentName.setText(it.name)
+            binding.seekbarBrightness.progress = it.brightness
             binding.buttonDelete.visibility = View.VISIBLE
         }
     }
@@ -81,17 +86,12 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             effectsAdapter.clear()
             effectsAdapter.addAll(effectNames)
             effectsAdapter.notifyDataSetChanged()
-
             segmentToEdit?.let { segment ->
                 val effectPosition = effectNames.indexOf(segment.effect)
                 if (effectPosition >= 0) {
-                    binding.spinnerEffect.setSelection(effectPosition)
+                    binding.spinnerEffect.setSelection(effectPosition, false)
                 }
             }
-        }
-
-        segmentViewModel.segments.observe(this) { segments ->
-            binding.rangeSliderLed.setExistingSegments(segments.filter { it.id != segmentToEdit?.id })
         }
 
         DeviceProtocolHandler.liveLedCount.observe(this) { ledCount ->
@@ -100,15 +100,11 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                 val slider = binding.rangeSliderLed
                 slider.valueFrom = 0f
                 slider.valueTo = (ledCount - 1).toFloat()
-
-                if (segmentToEdit != null) {
-                    val start = max(slider.valueFrom, segmentToEdit!!.startLed.toFloat())
-                    val end = min(slider.valueTo, segmentToEdit!!.endLed.toFloat())
-                    slider.values = listOf(start, end)
-                } else {
+                segmentToEdit?.let {
+                    slider.values = listOf(max(slider.valueFrom, it.startLed.toFloat()), min(slider.valueTo, it.endLed.toFloat()))
+                } ?: run {
                     slider.values = listOf(slider.valueFrom, min(slider.valueTo, 50f))
                 }
-
                 binding.editTextStartLed.setText(slider.values[0].toInt().toString())
                 binding.editTextEndLed.setText(slider.values[1].toInt().toString())
             }
@@ -145,6 +141,11 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedEffectName = parent?.getItemAtPosition(position).toString()
                 currentSelectedEffect = effectsViewModel.effects.value?.find { it.name == selectedEffectName }
+                stagedParameters.clear()
+                // When effect changes, populate staged with its default parameters
+                currentSelectedEffect?.parameters?.forEach { param ->
+                    stagedParameters[param.name] = param.value
+                }
                 dynamicParametersLayout.removeAllViews()
                 currentSelectedEffect?.let { buildDynamicParametersUi(it.parameters) }
             }
@@ -159,29 +160,24 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             }
             val start = binding.rangeSliderLed.values[0].toInt()
             val end = binding.rangeSliderLed.values[1].toInt()
-            val effect = binding.spinnerEffect.selectedItem.toString()
+            val effectName = binding.spinnerEffect.selectedItem.toString()
             val brightness = binding.seekbarBrightness.progress
 
+            // Create the updated segment with the currently staged parameters
+            val segmentToSave = segmentToEdit?.copy(
+                name = name, startLed = start, endLed = end, effect = effectName, brightness = brightness, parameters = stagedParameters
+            ) ?: Segment(UUID.randomUUID().toString(), name, start, end, effectName, brightness, stagedParameters)
+
+            // Save the segment (either update or add new)
             if (segmentToEdit == null) {
-                val newSegment = Segment(UUID.randomUUID().toString(), name, start, end, effect, brightness)
-                segmentViewModel.addSegment(newSegment)
+                segmentViewModel.addSegment(segmentToSave)
             } else {
-                // **THE FIX IS HERE**
-                // Using named arguments to prevent positional errors.
-                val updatedSegment = segmentToEdit!!.copy(
-                    name = name,
-                    startLed = start,
-                    endLed = end,
-                    effect = effect,
-                    brightness = brightness
-                )
-                segmentViewModel.updateSegment(updatedSegment)
+                segmentViewModel.updateSegment(segmentToSave)
             }
             finish()
         }
 
         binding.buttonCancel.setOnClickListener { finish() }
-
         binding.buttonDelete.setOnClickListener {
             segmentToEdit?.let {
                 segmentViewModel.deleteSegment(it.id)
@@ -195,7 +191,10 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         parameters.forEach { param ->
             val paramLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 16.dpToPx() }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = 16.dpToPx()
+                    gravity = Gravity.CENTER_VERTICAL
+                }
             }
             val paramNameTextView = TextView(this).apply {
                 text = param.name.replace("_", " ").replaceFirstChar { it.uppercase() }
@@ -205,35 +204,56 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             }
             paramLayout.addView(paramNameTextView)
 
-            val uiComponent: View? = when (param.type) {
+            when (param.type) {
                 "integer", "float" -> {
-                    Slider(this).apply {
-                        valueFrom = param.minVal ?: 0f
-                        valueTo = param.maxVal ?: 255f
-                        value = (param.value as? Double)?.toFloat() ?: 0f
-                        stepSize = if (param.type == "integer") 1f else 0.01f
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
+                    val from = param.minVal ?: 0f
+                    val to = param.maxVal ?: 255f
+                    val currentValue = (stagedParameters[param.name] as? Number)?.toFloat() ?: (param.value as? Double)?.toFloat() ?: 0f
+                    val step = if (param.type == "integer") 1f else 0.01f
+
+                    val valueTextView = TextView(this).apply {
+                        text = if (step == 1f) currentValue.toInt().toString() else String.format("%.2f", currentValue)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.2f)
+                        textSize = 14f
+                        gravity = Gravity.END
+                        setTextColor(ContextCompat.getColor(context, R.color.white))
+                    }
+
+                    val slider = Slider(this).apply {
+                        valueFrom = from
+                        valueTo = to
+                        value = currentValue.coerceIn(from, to)
+                        stepSize = step
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.4f)
                         addOnChangeListener { _, value, fromUser ->
                             if (fromUser) {
-                                val actualValue = if (stepSize == 1f) value.toInt() else value
-                                segmentToEdit?.let { DeviceProtocolHandler.sendParameterUpdate(it.id, param.name, param.type, actualValue) }
+                                stagedParameters[param.name] = if (stepSize == 1f) value.toInt() else value
                             }
+                            valueTextView.text = if (stepSize == 1f) value.toInt().toString() else String.format("%.2f", value)
                         }
                     }
+                    paramLayout.addView(slider)
+                    paramLayout.addView(valueTextView)
                 }
                 "boolean" -> {
-                    CheckBox(this).apply {
-                        isChecked = (param.value as? Boolean) ?: false
+                    val checkBox = CheckBox(this).apply {
+                        isChecked = (stagedParameters[param.name] as? Boolean) ?: (param.value as? Boolean) ?: false
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
                         setOnCheckedChangeListener { _, isChecked ->
-                            segmentToEdit?.let { DeviceProtocolHandler.sendParameterUpdate(it.id, param.name, param.type, isChecked) }
+                            stagedParameters[param.name] = isChecked
                         }
                     }
+                    paramLayout.addView(checkBox)
                 }
                 "color" -> {
-                    Button(this).apply {
+                    val colorButton = Button(this).apply {
                         text = "Select Color"
-                        val color = (param.value as? Double)?.toInt() ?: Color.GRAY
+                        val rawColor = stagedParameters[param.name] ?: param.value
+                        val color = when (rawColor) {
+                            is Double -> rawColor.toInt()
+                            is Int -> rawColor
+                            else -> Color.GRAY
+                        }
                         setBackgroundColor(color)
                         setTextColor(if (color.isLightColor()) Color.BLACK else Color.WHITE)
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
@@ -244,22 +264,49 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                                 .setDefaultColor(color)
                                 .setColorListener(object : ColorListener {
                                     override fun onColorSelected(selectedColor: Int, colorHex: String) {
+                                        // Apply gamma correction and strip alpha to get a positive integer
+                                        val finalColorValue = gammaCorrect(selectedColor)
+                                        Log.d("SegmentConfig", "Original: $colorHex. Final Positive Int Sent: $finalColorValue")
+
+                                        // Show the original color on the button for accurate UI feedback
                                         setBackgroundColor(selectedColor)
                                         setTextColor(if (selectedColor.isLightColor()) Color.BLACK else Color.WHITE)
-                                        segmentToEdit?.let { DeviceProtocolHandler.sendParameterUpdate(it.id, param.name, "color", selectedColor) }
+
+                                        // Store the final positive RGB integer to be sent to the device
+                                        stagedParameters[param.name] = finalColorValue
                                     }
                                 })
                                 .show()
                         }
                     }
+                    paramLayout.addView(colorButton)
                 }
-                else -> null
             }
-            uiComponent?.let { paramLayout.addView(it) }
             dynamicParametersLayout.addView(paramLayout)
         }
     }
 
+
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density + 0.5f).toInt()
     private fun Int.isLightColor(): Boolean = (1 - (0.299 * Color.red(this) + 0.587 * Color.green(this) + 0.114 * Color.blue(this)) / 255) < 0.5
+
+    /**
+     * Applies gamma correction and returns a positive RGB integer.
+     * @param color The original color integer.
+     * @param gamma The gamma factor. 2.8 is a good starting point for NeoPixels.
+     * @return The gamma-corrected, positive RGB color integer.
+     */
+    private fun gammaCorrect(color: Int, gamma: Double = 2.8): Int {
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+
+        val rCorrected = (255 * (r / 255.0).pow(gamma)).toInt()
+        val gCorrected = (255 * (g / 255.0).pow(gamma)).toInt()
+        val bCorrected = (255 * (b / 255.0).pow(gamma)).toInt()
+
+        // Create a standard ARGB color and then mask it to get just the RGB part (a positive integer)
+        val argbColor = Color.rgb(rCorrected, gCorrected, bCorrected)
+        return argbColor and 0x00FFFFFF
+    }
 }
