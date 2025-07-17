@@ -58,8 +58,6 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         dynamicParametersLayout = binding.dynamicParametersLayout
         intent.getParcelableExtra<Segment>("EXTRA_SEGMENT_TO_EDIT")?.let {
             segmentToEdit = it
-            // Pre-fill staged parameters if editing
-            stagedParameters.putAll(it.parameters ?: emptyMap())
         }
 
         setupStaticUI()
@@ -141,11 +139,14 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedEffectName = parent?.getItemAtPosition(position).toString()
                 currentSelectedEffect = effectsViewModel.effects.value?.find { it.name == selectedEffectName }
+
+                val defaultParams = currentSelectedEffect?.parameters?.associate { it.name to it.value }.orEmpty()
+                val savedParams = segmentToEdit?.parameters.orEmpty()
+
                 stagedParameters.clear()
-                // When effect changes, populate staged with its default parameters
-                currentSelectedEffect?.parameters?.forEach { param ->
-                    stagedParameters[param.name] = param.value
-                }
+                stagedParameters.putAll(defaultParams)
+                stagedParameters.putAll(savedParams)
+
                 dynamicParametersLayout.removeAllViews()
                 currentSelectedEffect?.let { buildDynamicParametersUi(it.parameters) }
             }
@@ -163,12 +164,10 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             val effectName = binding.spinnerEffect.selectedItem.toString()
             val brightness = binding.seekbarBrightness.progress
 
-            // Create the updated segment with the currently staged parameters
             val segmentToSave = segmentToEdit?.copy(
                 name = name, startLed = start, endLed = end, effect = effectName, brightness = brightness, parameters = stagedParameters
             ) ?: Segment(UUID.randomUUID().toString(), name, start, end, effectName, brightness, stagedParameters)
 
-            // Save the segment (either update or add new)
             if (segmentToEdit == null) {
                 segmentViewModel.addSegment(segmentToSave)
             } else {
@@ -246,33 +245,34 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     paramLayout.addView(checkBox)
                 }
                 "color" -> {
+                    // *** This block is the fix ***
                     val colorButton = Button(this).apply {
                         text = "Select Color"
                         val rawColor = stagedParameters[param.name] ?: param.value
-                        val color = when (rawColor) {
+                        val colorInt = when (rawColor) {
                             is Double -> rawColor.toInt()
                             is Int -> rawColor
                             else -> Color.GRAY
                         }
-                        setBackgroundColor(color)
-                        setTextColor(if (color.isLightColor()) Color.BLACK else Color.WHITE)
+                        // Convert the positive RGB int to a signed ARGB int for the UI
+                        val displayColor = colorInt or 0xFF000000.toInt()
+
+                        setBackgroundColor(displayColor)
+                        setTextColor(if (displayColor.isLightColor()) Color.BLACK else Color.WHITE)
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
                         setOnClickListener {
                             ColorPickerDialog.Builder(this@SegmentConfigurationActivity)
                                 .setTitle("Choose ${param.name} Color")
                                 .setColorShape(ColorShape.SQAURE)
-                                .setDefaultColor(color)
+                                .setDefaultColor(displayColor) // Use the display color for the picker
                                 .setColorListener(object : ColorListener {
                                     override fun onColorSelected(selectedColor: Int, colorHex: String) {
-                                        // Apply gamma correction and strip alpha to get a positive integer
                                         val finalColorValue = gammaCorrect(selectedColor)
                                         Log.d("SegmentConfig", "Original: $colorHex. Final Positive Int Sent: $finalColorValue")
 
-                                        // Show the original color on the button for accurate UI feedback
                                         setBackgroundColor(selectedColor)
                                         setTextColor(if (selectedColor.isLightColor()) Color.BLACK else Color.WHITE)
 
-                                        // Store the final positive RGB integer to be sent to the device
                                         stagedParameters[param.name] = finalColorValue
                                     }
                                 })
@@ -290,12 +290,6 @@ class SegmentConfigurationActivity : AppCompatActivity() {
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density + 0.5f).toInt()
     private fun Int.isLightColor(): Boolean = (1 - (0.299 * Color.red(this) + 0.587 * Color.green(this) + 0.114 * Color.blue(this)) / 255) < 0.5
 
-    /**
-     * Applies gamma correction and returns a positive RGB integer.
-     * @param color The original color integer.
-     * @param gamma The gamma factor. 2.8 is a good starting point for NeoPixels.
-     * @return The gamma-corrected, positive RGB color integer.
-     */
     private fun gammaCorrect(color: Int, gamma: Double = 2.8): Int {
         val r = Color.red(color)
         val g = Color.green(color)
@@ -305,7 +299,6 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         val gCorrected = (255 * (g / 255.0).pow(gamma)).toInt()
         val bCorrected = (255 * (b / 255.0).pow(gamma)).toInt()
 
-        // Create a standard ARGB color and then mask it to get just the RGB part (a positive integer)
         val argbColor = Color.rgb(rCorrected, gCorrected, bCorrected)
         return argbColor and 0x00FFFFFF
     }

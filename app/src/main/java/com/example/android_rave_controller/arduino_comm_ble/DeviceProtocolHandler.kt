@@ -12,6 +12,7 @@ import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentsRepository
 import com.example.android_rave_controller.models.Status
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -192,7 +193,10 @@ object DeviceProtocolHandler {
                     Log.d("ProtocolHandler", "All effect parameters downloaded.")
                 }
             } else if (jsonObject.has("segments") && jsonObject.has("available_effects")) {
-                val status = gson.fromJson(jsonObject, Status::class.java)
+                // *** This is the fix ***
+                // Manually parse the Status object to ensure correct types for parameters
+                val status = parseStatusFromJson(jsonObject)
+
                 SegmentsRepository.updateSegments(status.segments)
                 val initialEffects = status.effectNames.map { Effect(name = it, parameters = emptyList()) }
                 EffectsRepository.updateEffects(initialEffects)
@@ -203,6 +207,43 @@ object DeviceProtocolHandler {
             Log.e("ProtocolHandler", "Failed to parse JSON: $jsonString", e)
             currentState = ProtocolState.IDLE
         }
+    }
+
+    // New function to manually parse the Status object from a JsonObject
+    private fun parseStatusFromJson(jsonObject: JsonObject): Status {
+        val effectNames = gson.fromJson(jsonObject.getAsJsonArray("available_effects"), Array<String>::class.java).toList()
+        val jsonSegments = jsonObject.getAsJsonArray("segments")
+        val segments = jsonSegments.map { jsonElement ->
+            val segmentObject = jsonElement.asJsonObject
+            val parametersObject = segmentObject.getAsJsonObject("parameters")
+            val parametersMap = mutableMapOf<String, Any>()
+
+            if (parametersObject != null) {
+                for ((key, valueElement) in parametersObject.entrySet()) {
+                    val value = when {
+                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isBoolean -> valueElement.asBoolean
+                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isNumber -> {
+                            // This is the key change: ensure all numbers are stored as Int
+                            valueElement.asDouble.toInt()
+                        }
+                        else -> gson.fromJson(valueElement, Any::class.java) // Fallback for other types
+                    }
+                    parametersMap[key] = value
+                }
+            }
+
+            // Build the segment manually
+            Segment(
+                id = segmentObject.get("id").asString,
+                name = segmentObject.get("name").asString,
+                startLed = segmentObject.get("startLed").asInt,
+                endLed = segmentObject.get("endLed").asInt,
+                effect = segmentObject.get("effect").asString,
+                brightness = segmentObject.get("brightness").asInt,
+                parameters = parametersMap
+            )
+        }
+        return Status(effectNames = effectNames, segments = segments)
     }
     // endregion
 }
