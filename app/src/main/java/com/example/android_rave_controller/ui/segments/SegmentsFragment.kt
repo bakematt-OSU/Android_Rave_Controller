@@ -1,4 +1,3 @@
-// src/main/java/com/example/android_rave_controller/ui/segments/SegmentsFragment.kt
 package com.example.android_rave_controller.ui.segments
 
 import android.app.AlertDialog
@@ -53,10 +52,12 @@ class SegmentsFragment : Fragment() {
         binding.buttonAdd.setOnClickListener {
             startActivity(Intent(activity, SegmentConfigurationActivity::class.java))
         }
+        // Restore the listener to show the pop-up dialog
         binding.buttonLoad.setOnClickListener { showLoadDialog() }
         binding.buttonSave.setOnClickListener { showSaveDialog() }
         binding.buttonGetConfig.setOnClickListener {
-            AlertDialog.Builder(requireContext())
+            // Apply the new theme here
+            AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
                 .setTitle(getString(R.string.dialog_get_config_title))
                 .setMessage(getString(R.string.dialog_get_config_message))
                 .setPositiveButton(getString(R.string.dialog_yes)) { _, _ ->
@@ -94,7 +95,8 @@ class SegmentsFragment : Fragment() {
         val currentEffects = EffectsRepository.effects.value?.map { it.name } ?: return
 
         val input = EditText(requireContext()).apply { hint = "Configuration name" }
-        AlertDialog.Builder(requireContext())
+        // Apply the new theme here
+        AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
             .setTitle(getString(R.string.dialog_save_config_title))
             .setView(input)
             .setPositiveButton(getString(R.string.button_save)) { _, _ ->
@@ -109,18 +111,21 @@ class SegmentsFragment : Fragment() {
             .show()
     }
 
+    // Add this method back to show the pop-up
     private fun showLoadDialog() {
         val savedFiles = ConfigurationManager.getSavedConfigurations(requireContext())
         if (savedFiles.isEmpty()) {
             Toast.makeText(context, "No saved configurations found.", Toast.LENGTH_SHORT).show()
             return
         }
-        AlertDialog.Builder(requireContext())
+        // Apply the new theme here
+        AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
             .setTitle(getString(R.string.dialog_load_config_select_title))
             .setItems(savedFiles) { _, which -> loadConfiguration(savedFiles[which]) }
             .show()
     }
 
+    // Add this helper method back
     private fun loadConfiguration(filename: String) {
         val loadedConfig = ConfigurationManager.loadConfiguration(requireContext(), filename)
         if (loadedConfig != null) {

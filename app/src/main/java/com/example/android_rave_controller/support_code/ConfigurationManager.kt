@@ -13,7 +13,6 @@ object ConfigurationManager {
     private val gson = Gson()
 
     private fun getFile(context: Context, filename: String): File {
-        // Ensure the filename ends with .json
         val properFilename = if (filename.endsWith(".json")) filename else "$filename.json"
         return File(context.filesDir, properFilename)
     }
@@ -21,6 +20,7 @@ object ConfigurationManager {
     fun getSavedConfigurations(context: Context): Array<String> {
         return context.filesDir.listFiles { _, name -> name.endsWith(".json") }
             ?.map { it.name.removeSuffix(".json") }
+            ?.sorted() // Sort them alphabetically
             ?.toTypedArray() ?: emptyArray()
     }
 
@@ -52,6 +52,39 @@ object ConfigurationManager {
         } catch (e: Exception) { // Catch broader exceptions for GSON parsing etc.
             Log.e("ConfigManager", "Error loading configuration", e)
             null
+        }
+    }
+
+    // New function to delete a configuration file
+    fun deleteConfiguration(context: Context, filename: String): Boolean {
+        return try {
+            val file = getFile(context, filename)
+            if (file.exists()) {
+                file.delete()
+            } else {
+                Log.w("ConfigManager", "File not found for deletion: $filename")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("ConfigManager", "Error deleting configuration: $filename", e)
+            false
+        }
+    }
+
+    // New function to rename a configuration file
+    fun renameConfiguration(context: Context, oldFilename: String, newFilename: String): Boolean {
+        if (newFilename.isBlank()) return false
+        val oldFile = getFile(context, oldFilename)
+        val newFile = getFile(context, newFilename)
+        if (!oldFile.exists() || newFile.exists()) {
+            Log.w("ConfigManager", "Rename failed. Old file not found or new file already exists.")
+            return false
+        }
+        return try {
+            oldFile.renameTo(newFile)
+        } catch (e: Exception) {
+            Log.e("ConfigManager", "Error renaming file", e)
+            false
         }
     }
 }

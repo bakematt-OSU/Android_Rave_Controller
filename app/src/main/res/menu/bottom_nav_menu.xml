@@ -5,8 +5,15 @@
         android:id="@+id/navigation_home"
         android:icon="@drawable/ic_home_black_24dp"
         android:title="@string/title_home" />
+
     <item
         android:id="@+id/navigation_segments"
         android:icon="@android:drawable/ic_menu_sort_by_size"
         android:title="@string/title_segments" />
+
+    <item
+        android:id="@+id/navigation_configurations"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="Configs" />
+
 </menu>

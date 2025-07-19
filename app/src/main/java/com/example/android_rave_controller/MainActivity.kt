@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val appBarConfiguration by lazy {
         AppBarConfiguration(
             setOf(
-                R.id.navigation_home, R.id.navigation_segments
+                R.id.navigation_home, R.id.navigation_segments, R.id.navigation_configurations
             )
         )
     }
@@ -110,4 +110,3 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-//

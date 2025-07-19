@@ -17,4 +17,10 @@
         android:label="@string/title_segments"
         tools:layout="@layout/fragment_segments" />
 
+    <fragment
+        android:id="@+id/navigation_configurations"
+        android:name="com.example.android_rave_controller.ui.configurations.ConfigurationsFragment"
+        android:label="Manage Configurations"
+        tools:layout="@layout/fragment_configurations" />
+
 </navigation>
