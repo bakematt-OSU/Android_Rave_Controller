@@ -1,0 +1,59 @@
+package com.example.android_rave_controller.ui.device
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
+import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
+import com.example.android_rave_controller.databinding.FragmentDeviceBinding
+
+class DeviceFragment : Fragment() {
+
+    private var _binding: FragmentDeviceBinding? = null
+    private val binding get() = _binding!!
+
+    private val connectionViewModel: ConnectionViewModel by activityViewModels()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentDeviceBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        connectionViewModel.deviceName.observe(viewLifecycleOwner) { name ->
+            binding.textViewDeviceName.text = name ?: "Not Connected"
+        }
+
+        DeviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
+            binding.textViewLedCount.text = count.toString()
+        }
+
+        binding.buttonSaveConfigToDevice.setOnClickListener {
+            if (connectionViewModel.isConnected.value == true) {
+                DeviceProtocolHandler.saveConfigurationToDevice()
+                Toast.makeText(context, "Saving configuration to device...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Not connected to a device.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Request the LED count when the fragment is viewed
+        if (connectionViewModel.isConnected.value == true) {
+            DeviceProtocolHandler.requestLedCount()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

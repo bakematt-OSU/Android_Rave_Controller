@@ -17,4 +17,8 @@ class SegmentViewModel : ViewModel() {
     fun deleteSegment(segmentId: Int) { // Changed from String to Int
         SegmentsRepository.deleteSegment(segmentId)
     }
+
+    fun clearAllSegments() {
+        SegmentsRepository.clearAllSegments()
+    }
 }

@@ -23,4 +23,10 @@
         android:label="Manage Configurations"
         tools:layout="@layout/fragment_configurations" />
 
+    <fragment
+        android:id="@+id/navigation_device"
+        android:name="com.example.android_rave_controller.ui.device.DeviceFragment"
+        android:label="Device"
+        tools:layout="@layout/fragment_device" />
+
 </navigation>

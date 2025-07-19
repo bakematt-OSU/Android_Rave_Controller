@@ -30,6 +30,7 @@ object DeviceProtocolHandler {
     private val CMD_SET_ALL_SEGMENT_CONFIGS: Byte = LedControllerCommands.CMD_SET_ALL_SEGMENT_CONFIGS.toByte()
     private val CMD_SET_SINGLE_SEGMENT_JSON: Byte = LedControllerCommands.CMD_SET_SINGLE_SEGMENT_JSON.toByte()
     private val CMD_SET_EFFECT_PARAMETER: Byte = LedControllerCommands.CMD_SET_EFFECT_PARAMETER.toByte()
+    private val CMD_SAVE_CONFIG: Byte = LedControllerCommands.CMD_SAVE_CONFIG.toByte()
     // endregion
 
     private enum class ProtocolState {
@@ -84,6 +85,10 @@ object DeviceProtocolHandler {
         segments.forEach { segment ->
             queueCommand(gson.toJson(segment).toByteArray(Charsets.UTF_8))
         }
+    }
+
+    fun saveConfigurationToDevice() {
+        queueCommand(byteArrayOf(CMD_SAVE_CONFIG))
     }
 
     // CORRECTION: Changed segmentId from String to Int
@@ -214,36 +219,36 @@ object DeviceProtocolHandler {
     private fun parseStatusFromJson(jsonObject: JsonObject): Status {
         val effectNames = gson.fromJson(jsonObject.getAsJsonArray("available_effects"), Array<String>::class.java).toList()
         val jsonSegments = jsonObject.getAsJsonArray("segments")
-        val segments = jsonSegments.map { jsonElement ->
-            val segmentObject = jsonElement.asJsonObject
-            val parametersObject = segmentObject.getAsJsonObject("parameters")
-            val parametersMap = mutableMapOf<String, Any>()
+        val segments = jsonSegments.mapNotNull { jsonElement -> // Use mapNotNull to filter out any segments that fail to parse
+            try {
+                val segmentObject = jsonElement.asJsonObject
+                val parametersObject = segmentObject.getAsJsonObject("parameters")
+                val parametersMap = mutableMapOf<String, Any>()
 
-            if (parametersObject != null) {
-                for ((key, valueElement) in parametersObject.entrySet()) {
-                    val value = when {
-                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isBoolean -> valueElement.asBoolean
-                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isNumber -> {
-                            // This is the key change: ensure all numbers are stored as Int
-                            valueElement.asDouble.toInt()
+                if (parametersObject != null) {
+                    for ((key, valueElement) in parametersObject.entrySet()) {
+                        val value = when {
+                            valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isBoolean -> valueElement.asBoolean
+                            valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isNumber -> valueElement.asDouble.toInt()
+                            else -> gson.fromJson(valueElement, Any::class.java)
                         }
-                        else -> gson.fromJson(valueElement, Any::class.java) // Fallback for other types
+                        parametersMap[key] = value
                     }
-                    parametersMap[key] = value
                 }
-            }
 
-            // Build the segment manually
-            Segment(
-                // CORRECTION: Changed from asString to asInt
-                id = segmentObject.get("id").asInt,
-                name = segmentObject.get("name").asString,
-                startLed = segmentObject.get("startLed").asInt,
-                endLed = segmentObject.get("endLed").asInt,
-                effect = segmentObject.get("effect").asString,
-                brightness = segmentObject.get("brightness").asInt,
-                parameters = parametersMap
-            )
+                Segment(
+                    id = segmentObject.get("id")?.asInt ?: -1, // Provide a default value if null
+                    name = segmentObject.get("name")?.asString ?: "Unnamed Segment", // Provide a default name
+                    startLed = segmentObject.get("startLed")?.asInt ?: 0,
+                    endLed = segmentObject.get("endLed")?.asInt ?: 0,
+                    effect = segmentObject.get("effect")?.asString ?: "SolidColor", // Provide a default effect
+                    brightness = segmentObject.get("brightness")?.asInt ?: 128,
+                    parameters = parametersMap
+                ).takeIf { it.id != -1 } // Only include the segment if it has a valid ID
+            } catch (e: Exception) {
+                Log.e("ProtocolHandler", "Failed to parse a segment, skipping.", e)
+                null // Return null if parsing fails, mapNotNull will exclude it
+            }
         }
         return Status(effectNames = effectNames, segments = segments)
     }

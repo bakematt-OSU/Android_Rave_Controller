@@ -52,21 +52,21 @@ class SegmentsFragment : Fragment() {
         binding.buttonAdd.setOnClickListener {
             startActivity(Intent(activity, SegmentConfigurationActivity::class.java))
         }
-        // Restore the listener to show the pop-up dialog
         binding.buttonLoad.setOnClickListener { showLoadDialog() }
         binding.buttonSave.setOnClickListener { showSaveDialog() }
         binding.buttonGetConfig.setOnClickListener {
-            // Apply the new theme here
             AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
                 .setTitle(getString(R.string.dialog_get_config_title))
                 .setMessage(getString(R.string.dialog_get_config_message))
                 .setPositiveButton(getString(R.string.dialog_yes)) { _, _ ->
-                    // Corrected: requestDeviceStatus is now the main entry point
                     DeviceProtocolHandler.requestDeviceStatus()
                     Toast.makeText(context, "Refreshing configuration…", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton(getString(R.string.dialog_no), null)
                 .show()
+        }
+        binding.buttonWizard.setOnClickListener {
+            SegmentsWizardDialogFragment().show(parentFragmentManager, "SegmentsWizardDialog")
         }
     }
 
@@ -95,7 +95,6 @@ class SegmentsFragment : Fragment() {
         val currentEffects = EffectsRepository.effects.value?.map { it.name } ?: return
 
         val input = EditText(requireContext()).apply { hint = "Configuration name" }
-        // Apply the new theme here
         AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
             .setTitle(getString(R.string.dialog_save_config_title))
             .setView(input)
@@ -111,21 +110,18 @@ class SegmentsFragment : Fragment() {
             .show()
     }
 
-    // Add this method back to show the pop-up
     private fun showLoadDialog() {
         val savedFiles = ConfigurationManager.getSavedConfigurations(requireContext())
         if (savedFiles.isEmpty()) {
             Toast.makeText(context, "No saved configurations found.", Toast.LENGTH_SHORT).show()
             return
         }
-        // Apply the new theme here
         AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
             .setTitle(getString(R.string.dialog_load_config_select_title))
             .setItems(savedFiles) { _, which -> loadConfiguration(savedFiles[which]) }
             .show()
     }
 
-    // Add this helper method back
     private fun loadConfiguration(filename: String) {
         val loadedConfig = ConfigurationManager.loadConfiguration(requireContext(), filename)
         if (loadedConfig != null) {

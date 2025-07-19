@@ -30,4 +30,8 @@ object SegmentsRepository {
     fun updateSegments(newSegments: List<Segment>) {
         segments.postValue(newSegments.toMutableList())
     }
+
+    fun clearAllSegments() {
+        segments.postValue(mutableListOf())
+    }
 }

@@ -19,6 +19,8 @@ object LedControllerCommands {
     const val CMD_SET_ALL_SEGMENT_CONFIGS = 0x0F // New
     const val CMD_GET_ALL_EFFECTS = 0x10         // New
     const val CMD_SET_SINGLE_SEGMENT_JSON = 0x11 // New
+    const val CMD_SAVE_CONFIG = 0x12             // New
+
 
     // Response codes
     const val CMD_ACK = 0xA0

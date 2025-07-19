@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -10,6 +9,11 @@
         android:id="@+id/navigation_segments"
         android:icon="@android:drawable/ic_menu_sort_by_size"
         android:title="@string/title_segments" />
+
+    <item
+        android:id="@+id/navigation_device"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="Device" />
 
     <item
         android:id="@+id/navigation_configurations"
