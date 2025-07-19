@@ -86,7 +86,8 @@ object DeviceProtocolHandler {
         }
     }
 
-    fun sendParameterUpdate(segmentId: String, paramName: String, paramType: String, value: Any) {
+    // CORRECTION: Changed segmentId from String to Int
+    fun sendParameterUpdate(segmentId: Int, paramName: String, paramType: String, value: Any) {
         val segIndex = SegmentsRepository.segments.value?.indexOfFirst { it.id == segmentId } ?: -1
         if (segIndex == -1) return
 
@@ -234,7 +235,8 @@ object DeviceProtocolHandler {
 
             // Build the segment manually
             Segment(
-                id = segmentObject.get("id").asString,
+                // CORRECTION: Changed from asString to asInt
+                id = segmentObject.get("id").asInt,
                 name = segmentObject.get("name").asString,
                 startLed = segmentObject.get("startLed").asInt,
                 endLed = segmentObject.get("endLed").asInt,

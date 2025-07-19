@@ -2,6 +2,7 @@
 package com.example.android_rave_controller.ui.segments
 
 import android.graphics.Color
+import android.os.Build // Import Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -56,9 +57,14 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         dynamicParametersLayout = binding.dynamicParametersLayout
-        intent.getParcelableExtra<Segment>("EXTRA_SEGMENT_TO_EDIT")?.let {
-            segmentToEdit = it
+        // CORRECTION: Updated getParcelableExtra call
+        segmentToEdit = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT", Segment::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT")
         }
+
 
         setupStaticUI()
         setupListeners()
@@ -93,22 +99,27 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         }
 
         DeviceProtocolHandler.liveLedCount.observe(this) { ledCount ->
-            if (ledCount > 0 && !hasInitializedWithLedCount) {
-                hasInitializedWithLedCount = true
+            if (ledCount > 0) { // No longer checking hasInitializedWithLedCount
                 val slider = binding.rangeSliderLed
                 slider.valueFrom = 0f
-                slider.valueTo = (ledCount - 1).toFloat()
-                segmentToEdit?.let {
-                    slider.values = listOf(max(slider.valueFrom, it.startLed.toFloat()), min(slider.valueTo, it.endLed.toFloat()))
-                } ?: run {
-                    slider.values = listOf(slider.valueFrom, min(slider.valueTo, 50f))
+                slider.valueTo = (ledCount - 1).toFloat() // This now updates whenever ledCount changes
+
+                if (!hasInitializedWithLedCount) {
+                    hasInitializedWithLedCount = true
+                    segmentToEdit?.let {
+                        slider.values = listOf(max(slider.valueFrom, it.startLed.toFloat()), min(slider.valueTo, it.endLed.toFloat()))
+                    } ?: run {
+                        slider.values = listOf(slider.valueFrom, min(slider.valueTo, 50f))
+                    }
+                    binding.editTextStartLed.setText(slider.values[0].toInt().toString())
+                    binding.editTextEndLed.setText(slider.values[1].toInt().toString())
+                } else {
+                    // If already initialized, just make sure the current values don't exceed the new max
+                    slider.values = listOf(min(slider.values[0], slider.valueTo), min(slider.values[1], slider.valueTo))
                 }
-                binding.editTextStartLed.setText(slider.values[0].toInt().toString())
-                binding.editTextEndLed.setText(slider.values[1].toInt().toString())
             }
         }
     }
-
     private fun setupListeners() {
         binding.rangeSliderLed.addOnChangeListener { slider, _, fromUser ->
             if (fromUser) {
@@ -166,7 +177,15 @@ class SegmentConfigurationActivity : AppCompatActivity() {
 
             val segmentToSave = segmentToEdit?.copy(
                 name = name, startLed = start, endLed = end, effect = effectName, brightness = brightness, parameters = stagedParameters
-            ) ?: Segment(UUID.randomUUID().toString(), name, start, end, effectName, brightness, stagedParameters)
+            ) ?: Segment(
+                id = (System.currentTimeMillis() and 0xffffffff).toInt(),
+                name = name,
+                startLed = start,
+                endLed = end,
+                effect = effectName,
+                brightness = brightness,
+                parameters = stagedParameters
+            )
 
             if (segmentToEdit == null) {
                 segmentViewModel.addSegment(segmentToSave)

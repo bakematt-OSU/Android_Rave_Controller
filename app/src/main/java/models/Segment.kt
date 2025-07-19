@@ -7,7 +7,7 @@ import kotlinx.parcelize.RawValue
 
 @Parcelize
 data class Segment(
-    val id: String,
+    val id: Int, // Changed from String to Int
     var name: String,
     var startLed: Int,
     var endLed: Int,

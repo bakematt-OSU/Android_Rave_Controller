@@ -1,3 +1,4 @@
+// src/main/java/com/example/android_rave_controller/models/SegmentViewModel.kt
 package com.example.android_rave_controller.models
 
 import androidx.lifecycle.ViewModel
@@ -13,7 +14,7 @@ class SegmentViewModel : ViewModel() {
         SegmentsRepository.updateSegment(segment)
     }
 
-    fun deleteSegment(segmentId: String) {
+    fun deleteSegment(segmentId: Int) { // Changed from String to Int
         SegmentsRepository.deleteSegment(segmentId)
     }
 }

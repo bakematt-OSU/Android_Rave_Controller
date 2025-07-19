@@ -1,3 +1,4 @@
+// src/main/java/com/example/android_rave_controller/models/SegmentsRepository.kt
 package com.example.android_rave_controller.models
 
 import androidx.lifecycle.MutableLiveData
@@ -20,7 +21,7 @@ object SegmentsRepository {
         }
     }
 
-    fun deleteSegment(segmentId: String) {
+    fun deleteSegment(segmentId: Int) { // Changed from String to Int
         val currentList = segments.value ?: return
         currentList.removeAll { it.id == segmentId }
         segments.postValue(currentList)
