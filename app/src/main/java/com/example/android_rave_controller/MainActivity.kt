@@ -1,4 +1,3 @@
-// src/main/java/com/example/android_rave_controller/MainActivity.kt
 package com.example.android_rave_controller
 
 import android.graphics.Color
@@ -17,7 +16,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.android_rave_controller.databinding.ActivityMainBinding
 import com.example.android_rave_controller.arduino_comm_ble.BluetoothDialogFragment
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
-import com.example.android_rave_controller.arduino_comm_ble.BluetoothService // Corrected import
+import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -52,16 +51,11 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Find the views inside the toolbar manually.
-        // First, get a reference to the included layout.
-        // The ID 'toolbar_content' is defined in activity_main.xml for the <include> tag.
         val toolbarContent = binding.toolbar.findViewById<View>(R.id.toolbar_content)
-
-        // Now, find the actual TextViews and ImageView *within* that included layout
         toolbarTitle = toolbarContent.findViewById(R.id.toolbar_title)
         textDeviceName = toolbarContent.findViewById(R.id.text_device_name)
         imageConnectionStatus = toolbarContent.findViewById(R.id.image_connection_status)
-        statusLayout = toolbarContent.findViewById(R.id.status_layout) // Find the layout
+        statusLayout = toolbarContent.findViewById(R.id.status_layout)
 
         val navView: BottomNavigationView = binding.navView
         navController = findNavController(R.id.nav_host_fragment_activity_main)
@@ -69,42 +63,33 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        // Listen for screen changes to update the title
         navController.addOnDestinationChangedListener { _, destination, _ ->
             toolbarTitle.text = destination.label
         }
 
-        // Observe the BluetoothService directly to update the ViewModel and the UI
         BluetoothService.connectionState.observe(this) { isConnected: Boolean ->
-            val deviceName = if (isConnected) {
-                BluetoothService.connectedDeviceName
-            } else {
-                null
-            }
-            connectionViewModel.updateConnection(isConnected, deviceName)
-            updateConnectionStatus(isConnected, deviceName) // Directly update the UI here
+            connectionViewModel.updateConnection(isConnected, BluetoothService.connectedDeviceName.value)
         }
 
-        // Add a click listener to the entire status layout
+        connectionViewModel.isConnected.observe(this) { isConnected ->
+            updateConnectionStatus(isConnected, connectionViewModel.deviceName.value)
+        }
+
         statusLayout.setOnClickListener {
             BluetoothDialogFragment().show(supportFragmentManager, "BluetoothDialog")
         }
 
-        // Set initial state
         updateConnectionStatus(false, null)
     }
 
     private fun updateConnectionStatus(isConnected: Boolean, deviceName: String?) {
         if (isConnected) {
-            // Connected State
-            textDeviceName.visibility = View.VISIBLE // Make sure the TextView is visible
-            // Set the device name, or a default message if the name is null or empty
-            textDeviceName.text = deviceName.takeIf { !it.isNullOrEmpty() } ?: "Connected" //
+            textDeviceName.visibility = View.VISIBLE
+            textDeviceName.text = deviceName.takeIf { !it.isNullOrEmpty() } ?: "Connected"
             imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_connected)
             imageConnectionStatus.setColorFilter(Color.GREEN)
         } else {
-            // Disconnected State
-            textDeviceName.visibility = View.GONE // Hide the TextView when disconnected
+            textDeviceName.visibility = View.GONE
             imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_disconnected)
             imageConnectionStatus.setColorFilter(Color.RED)
         }

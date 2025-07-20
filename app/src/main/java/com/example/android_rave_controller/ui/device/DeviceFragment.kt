@@ -7,10 +7,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
-import com.example.android_rave_controller.arduino_comm_ble.CommandSetters
+import androidx.fragment.app.viewModels
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.FragmentDeviceBinding
 
 class DeviceFragment : Fragment() {
@@ -19,6 +19,7 @@ class DeviceFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val connectionViewModel: ConnectionViewModel by activityViewModels()
+    private val deviceViewModel: DeviceViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,7 +36,7 @@ class DeviceFragment : Fragment() {
             binding.textViewDeviceName.text = name ?: "Not Connected"
         }
 
-        DeviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
+        deviceViewModel.deviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
             binding.textViewLedCount.text = count.toString()
         }
 
@@ -48,7 +49,6 @@ class DeviceFragment : Fragment() {
             }
         }
 
-        // Request the LED count when the fragment is viewed
         if (connectionViewModel.isConnected.value == true) {
             CommandGetters.requestLedCount()
         }

@@ -1,19 +1,16 @@
-// src/main/java/com/example/android_rave_controller/ui/segments/SegmentConfigurationActivity.kt
 package com.example.android_rave_controller.ui.segments
 
 import android.graphics.Color
-import android.os.Build // Import Build
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -21,32 +18,24 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.android_rave_controller.R
-import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.databinding.ActivitySegmentConfigurationBinding
-import com.example.android_rave_controller.models.Effect
-import com.example.android_rave_controller.models.EffectParameter
-import com.example.android_rave_controller.models.EffectsRepository
-import com.example.android_rave_controller.models.EffectsViewModel
-import com.example.android_rave_controller.models.Segment
-import com.example.android_rave_controller.models.SegmentViewModel
-import com.github.dhaval2404.colorpicker.ColorPickerDialog
-import com.github.dhaval2404.colorpicker.listener.ColorListener
-import com.github.dhaval2404.colorpicker.model.ColorShape
+import com.example.android_rave_controller.models.*
+import com.example.android_rave_controller.support_code.setupAsColorPicker
+import com.example.android_rave_controller.ui.device.DeviceViewModel
 import com.google.android.material.slider.Slider
-import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 
 class SegmentConfigurationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySegmentConfigurationBinding
     private val segmentViewModel: SegmentViewModel by viewModels()
     private val effectsViewModel: EffectsViewModel by viewModels()
+    private val deviceViewModel: DeviceViewModel by viewModels()
+
     private var isUpdatingFromSlider = false
     private var segmentToEdit: Segment? = null
-
     private lateinit var dynamicParametersLayout: LinearLayout
     private var currentSelectedEffect: Effect? = null
     private var hasInitializedWithLedCount = false
@@ -56,16 +45,14 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySegmentConfigurationBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         dynamicParametersLayout = binding.dynamicParametersLayout
-        // CORRECTION: Updated getParcelableExtra call
+
         segmentToEdit = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT", Segment::class.java)
         } else {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra("EXTRA_SEGMENT_TO_EDIT")
         }
-
 
         setupStaticUI()
         setupListeners()
@@ -99,11 +86,11 @@ class SegmentConfigurationActivity : AppCompatActivity() {
             }
         }
 
-        DeviceProtocolHandler.liveLedCount.observe(this) { ledCount ->
-            if (ledCount > 0) { // No longer checking hasInitializedWithLedCount
+        deviceViewModel.deviceProtocolHandler.liveLedCount.observe(this) { ledCount ->
+            if (ledCount > 0) {
                 val slider = binding.rangeSliderLed
                 slider.valueFrom = 0f
-                slider.valueTo = (ledCount - 1).toFloat() // This now updates whenever ledCount changes
+                slider.valueTo = (ledCount - 1).toFloat()
 
                 if (!hasInitializedWithLedCount) {
                     hasInitializedWithLedCount = true
@@ -115,12 +102,12 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     binding.editTextStartLed.setText(slider.values[0].toInt().toString())
                     binding.editTextEndLed.setText(slider.values[1].toInt().toString())
                 } else {
-                    // If already initialized, just make sure the current values don't exceed the new max
                     slider.values = listOf(min(slider.values[0], slider.valueTo), min(slider.values[1], slider.valueTo))
                 }
             }
         }
     }
+
     private fun setupListeners() {
         binding.rangeSliderLed.addOnChangeListener { slider, _, fromUser ->
             if (fromUser) {
@@ -265,38 +252,14 @@ class SegmentConfigurationActivity : AppCompatActivity() {
                     paramLayout.addView(checkBox)
                 }
                 "color" -> {
-                    // *** This block is the fix ***
                     val colorButton = Button(this).apply {
-                        text = "Select Color"
-                        val rawColor = stagedParameters[param.name] ?: param.value
-                        val colorInt = when (rawColor) {
-                            is Double -> rawColor.toInt()
-                            is Int -> rawColor
-                            else -> Color.GRAY
-                        }
-                        // Convert the positive RGB int to a signed ARGB int for the UI
-                        val displayColor = colorInt or 0xFF000000.toInt()
-
-                        setBackgroundColor(displayColor)
-                        setTextColor(if (displayColor.isLightColor()) Color.BLACK else Color.WHITE)
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
-                        setOnClickListener {
-                            ColorPickerDialog.Builder(this@SegmentConfigurationActivity)
-                                .setTitle("Choose ${param.name} Color")
-                                .setColorShape(ColorShape.SQAURE)
-                                .setDefaultColor(displayColor) // Use the display color for the picker
-                                .setColorListener(object : ColorListener {
-                                    override fun onColorSelected(selectedColor: Int, colorHex: String) {
-                                        val finalColorValue = gammaCorrect(selectedColor)
-                                        Log.d("SegmentConfig", "Original: $colorHex. Final Positive Int Sent: $finalColorValue")
-
-                                        setBackgroundColor(selectedColor)
-                                        setTextColor(if (selectedColor.isLightColor()) Color.BLACK else Color.WHITE)
-
-                                        stagedParameters[param.name] = finalColorValue
-                                    }
-                                })
-                                .show()
+                        setupAsColorPicker(
+                            context = this@SegmentConfigurationActivity,
+                            parameterName = param.name,
+                            stagedParameters = stagedParameters
+                        ) { finalColor ->
+                            stagedParameters[param.name] = finalColor
                         }
                     }
                     paramLayout.addView(colorButton)
@@ -306,20 +269,5 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         }
     }
 
-
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density + 0.5f).toInt()
-    private fun Int.isLightColor(): Boolean = (1 - (0.299 * Color.red(this) + 0.587 * Color.green(this) + 0.114 * Color.blue(this)) / 255) < 0.5
-
-    private fun gammaCorrect(color: Int, gamma: Double = 2.8): Int {
-        val r = Color.red(color)
-        val g = Color.green(color)
-        val b = Color.blue(color)
-
-        val rCorrected = (255 * (r / 255.0).pow(gamma)).toInt()
-        val gCorrected = (255 * (g / 255.0).pow(gamma)).toInt()
-        val bCorrected = (255 * (b / 255.0).pow(gamma)).toInt()
-
-        val argbColor = Color.rgb(rCorrected, gCorrected, bCorrected)
-        return argbColor and 0x00FFFFFF
-    }
 }

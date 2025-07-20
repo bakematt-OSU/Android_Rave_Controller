@@ -1,10 +1,8 @@
-package com.example.android_rave_controller.arduino_comm_ble
+package com.example.android_rave_controller.arduino_comm_ble.control
 
 import android.util.Log
 import com.example.android_rave_controller.models.Effect
-import com.example.android_rave_controller.models.EffectsRepository
 import com.example.android_rave_controller.models.Segment
-import com.example.android_rave_controller.models.SegmentsRepository
 import com.example.android_rave_controller.models.Status
 import com.google.gson.Gson
 import com.google.gson.JsonObject

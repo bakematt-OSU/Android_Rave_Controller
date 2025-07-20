@@ -1,7 +1,7 @@
-// src/main/java/com/example/android_rave_controller/arduino_comm_ble/BluetoothDialogFragment.kt
 package com.example.android_rave_controller.arduino_comm_ble
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -20,13 +20,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_rave_controller.databinding.ActivityBluetoothBinding
 import java.util.*
-import android.app.Activity // Import android.app.Activity
 
 class BluetoothDialogFragment : DialogFragment() {
 
@@ -47,7 +45,6 @@ class BluetoothDialogFragment : DialogFragment() {
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
 
-    // CORRECTED: Use the LED_SERVICE_UUID from your Arduino firmware
     private val scanFilter = ScanFilter.Builder()
         .setServiceUuid(ParcelUuid(UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")))
         .build()
@@ -55,7 +52,6 @@ class BluetoothDialogFragment : DialogFragment() {
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
-            // Allow devices without a name to be listed, but still filter for unique addresses
             if (device != null && !devices.any { it.address == device.address }) {
                 if (ContextCompat.checkSelfPermission(
                         requireContext(),
@@ -65,7 +61,6 @@ class BluetoothDialogFragment : DialogFragment() {
                     return
                 }
                 devices.add(device)
-                // Ensure UI updates are on the main thread
                 activity?.runOnUiThread {
                     deviceListAdapter.notifyItemInserted(devices.size - 1)
                 }
@@ -80,7 +75,6 @@ class BluetoothDialogFragment : DialogFragment() {
     private val requestMultiplePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             if (permissions.entries.all { it.value }) {
-                // Permissions granted, now check if Bluetooth is enabled
                 if (bluetoothAdapter?.isEnabled == true) {
                     startScanning()
                 } else {
@@ -96,7 +90,6 @@ class BluetoothDialogFragment : DialogFragment() {
         }
 
     private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        // CORRECTED: Use android.app.Activity.RESULT_OK
         if (result.resultCode == Activity.RESULT_OK) {
             startScanning()
         } else {
@@ -108,7 +101,6 @@ class BluetoothDialogFragment : DialogFragment() {
         _binding = ActivityBluetoothBinding.inflate(inflater, container, false)
         dialog?.setTitle("Scan for Devices")
 
-        // Initialize BluetoothService here with application context
         BluetoothService.initialize(requireContext().applicationContext)
 
         return binding.root
@@ -131,7 +123,7 @@ class BluetoothDialogFragment : DialogFragment() {
 
         BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected: Boolean ->
             if (isConnected) {
-                dismiss() // Close the dialog on successful connection
+                dismiss()
             }
         }
     }
@@ -156,7 +148,7 @@ class BluetoothDialogFragment : DialogFragment() {
                 Toast.makeText(context, "Bluetooth connect permission not granted.", Toast.LENGTH_SHORT).show()
                 return@BluetoothDeviceAdapter
             }
-            BluetoothService.connect(requireContext(), device, device.name) // Pass device.name here
+            BluetoothService.connect(device)
             Toast.makeText(context, "Connecting to ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
         }
         binding.devicesRecyclerView.adapter = deviceListAdapter
@@ -177,7 +169,6 @@ class BluetoothDialogFragment : DialogFragment() {
         if (missingPermissions.isNotEmpty()) {
             requestMultiplePermissions.launch(missingPermissions.toTypedArray())
         } else {
-            // Permissions are granted, now check if Bluetooth is enabled
             if (bluetoothAdapter?.isEnabled == true) {
                 startScanning()
             } else {
@@ -217,7 +208,6 @@ class BluetoothDialogFragment : DialogFragment() {
                 Manifest.permission.BLUETOOTH_SCAN
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // No Toast here, as it might be called on fragment destruction
             return
         }
         bleScanner?.stopScan(scanCallback)

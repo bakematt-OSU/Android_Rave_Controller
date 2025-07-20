@@ -1,5 +1,5 @@
 // src/main/java/com/example/android_rave_controller/arduino_comm_ble/LedControllerCommands.kt
-package com.example.android_rave_controller.arduino_comm_ble
+package com.example.android_rave_controller.arduino_comm_ble.control
 
 object LedControllerCommands {
     const val CMD_SET_COLOR = 0x01

@@ -1,5 +1,6 @@
-package com.example.android_rave_controller.arduino_comm_ble
+package com.example.android_rave_controller.arduino_comm_ble.control
 
+import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
 import com.example.android_rave_controller.models.Segment
 import com.example.android_rave_controller.models.SegmentsRepository
 import com.google.gson.Gson
@@ -13,21 +14,21 @@ object CommandSetters {
     fun sendSingleSegment(segment: Segment) {
         val jsonPayload = gson.toJson(segment)
         val command = byteArrayOf(LedControllerCommands.CMD_SET_SINGLE_SEGMENT_JSON.toByte()) + jsonPayload.toByteArray(Charsets.UTF_8)
-        CommandQueue.queueCommand(command)
+        BluetoothService.sendCommand(command)
     }
 
     fun sendFullConfiguration(segments: List<Segment>) {
-        CommandQueue.queueCommand(byteArrayOf(LedControllerCommands.CMD_SET_ALL_SEGMENT_CONFIGS.toByte()))
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_SET_ALL_SEGMENT_CONFIGS.toByte()))
         val segmentCount = segments.size
         val countBytes = byteArrayOf((segmentCount shr 8).toByte(), (segmentCount and 0xFF).toByte())
-        CommandQueue.queueCommand(countBytes)
+        BluetoothService.sendCommand(countBytes)
         segments.forEach { segment ->
-            CommandQueue.queueCommand(gson.toJson(segment).toByteArray(Charsets.UTF_8))
+            BluetoothService.sendCommand(gson.toJson(segment).toByteArray(Charsets.UTF_8))
         }
     }
 
     fun saveConfigurationToDevice() {
-        CommandQueue.queueCommand(byteArrayOf(LedControllerCommands.CMD_SAVE_CONFIG.toByte()))
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_SAVE_CONFIG.toByte()))
     }
 
     fun sendParameterUpdate(segmentId: Int, paramName: String, paramType: String, value: Any) {
@@ -49,11 +50,11 @@ object CommandSetters {
             else -> return
         }
         val commandPayload = byteArrayOf(segIndex.toByte(), paramTypeOrdinal.toByte(), paramNameBytes.size.toByte()) + paramNameBytes + valueBytes
-        CommandQueue.queueCommand(byteArrayOf(LedControllerCommands.CMD_SET_EFFECT_PARAMETER.toByte()) + commandPayload)
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_SET_EFFECT_PARAMETER.toByte()) + commandPayload)
     }
 
     fun setLedCount(count: Int) {
         val countBytes = byteArrayOf((count shr 8).toByte(), (count and 0xFF).toByte())
-        CommandQueue.queueCommand(byteArrayOf(LedControllerCommands.CMD_SET_LED_COUNT.toByte()) + countBytes)
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_SET_LED_COUNT.toByte()) + countBytes)
     }
 }

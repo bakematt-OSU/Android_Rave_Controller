@@ -1,9 +1,7 @@
 package com.example.android_rave_controller.ui.segments
 
 import android.app.AlertDialog
-import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -19,19 +17,12 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import com.example.android_rave_controller.R
-import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.databinding.DialogSegmentsWizardBinding
-import com.example.android_rave_controller.models.Effect
-import com.example.android_rave_controller.models.EffectParameter
-import com.example.android_rave_controller.models.EffectsViewModel
-import com.example.android_rave_controller.models.Segment
-import com.example.android_rave_controller.models.SegmentViewModel
-import com.github.dhaval2404.colorpicker.ColorPickerDialog
-import com.github.dhaval2404.colorpicker.listener.ColorListener
-import com.github.dhaval2404.colorpicker.model.ColorShape
+import com.example.android_rave_controller.models.*
+import com.example.android_rave_controller.support_code.setupAsColorPicker
+import com.example.android_rave_controller.ui.device.DeviceViewModel
 import com.google.android.material.slider.Slider
-import kotlin.math.pow
 
 class SegmentsWizardDialogFragment : DialogFragment() {
 
@@ -40,6 +31,8 @@ class SegmentsWizardDialogFragment : DialogFragment() {
 
     private val segmentViewModel: SegmentViewModel by activityViewModels()
     private val effectsViewModel: EffectsViewModel by activityViewModels()
+    private val deviceViewModel: DeviceViewModel by activityViewModels()
+
     private var maxLedCount = 0
     private var currentSelectedEffect: Effect? = null
     private val stagedParameters = mutableMapOf<String, Any>()
@@ -66,7 +59,7 @@ class SegmentsWizardDialogFragment : DialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         setupEffectsSpinner()
         setupListeners()
-        DeviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
+        deviceViewModel.deviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
             maxLedCount = count
         }
         CommandGetters.requestLedCount()
@@ -228,35 +221,13 @@ class SegmentsWizardDialogFragment : DialogFragment() {
                 }
                 "color" -> {
                     val colorButton = Button(requireContext()).apply {
-                        text = "Select Color"
-                        val rawColor = stagedParameters[param.name] ?: param.value
-                        val colorInt = when (rawColor) {
-                            is Double -> rawColor.toInt()
-                            is Int -> rawColor
-                            else -> Color.GRAY
-                        }
-                        val displayColor = colorInt or -0x1000000
-
-                        setBackgroundColor(displayColor)
-                        setTextColor(if (isLightColor(displayColor)) Color.BLACK else Color.WHITE)
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f)
-                        setOnClickListener {
-                            ColorPickerDialog.Builder(requireActivity())
-                                .setTitle("Choose ${param.name} Color")
-                                .setColorShape(ColorShape.SQAURE)
-                                .setDefaultColor(displayColor)
-                                .setColorListener(object : ColorListener {
-                                    override fun onColorSelected(selectedColor: Int, colorHex: String) {
-                                        val finalColorValue = gammaCorrect(selectedColor)
-                                        Log.d("SegmentsWizard", "Original: $colorHex. Final Positive Int Sent: $finalColorValue")
-
-                                        setBackgroundColor(selectedColor)
-                                        setTextColor(if (isLightColor(selectedColor)) Color.BLACK else Color.WHITE)
-
-                                        stagedParameters[param.name] = finalColorValue
-                                    }
-                                })
-                                .show()
+                        setupAsColorPicker(
+                            context = requireContext(),
+                            parameterName = param.name,
+                            stagedParameters = stagedParameters
+                        ) { finalColor ->
+                            stagedParameters[param.name] = finalColor
                         }
                     }
                     paramLayout.addView(colorButton)
@@ -264,21 +235,6 @@ class SegmentsWizardDialogFragment : DialogFragment() {
             }
             binding.dynamicParametersLayout.addView(paramLayout)
         }
-    }
-
-    private fun isLightColor(color: Int): Boolean = (1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255) < 0.5
-
-    private fun gammaCorrect(color: Int, gamma: Double = 2.8): Int {
-        val r = Color.red(color)
-        val g = Color.green(color)
-        val b = Color.blue(color)
-
-        val rCorrected = (255 * (r / 255.0).pow(gamma)).toInt()
-        val gCorrected = (255 * (g / 255.0).pow(gamma)).toInt()
-        val bCorrected = (255 * (b / 255.0).pow(gamma)).toInt()
-
-        val argbColor = Color.rgb(rCorrected, gCorrected, bCorrected)
-        return argbColor and 0x00FFFFFF
     }
 
     override fun onDestroyView() {

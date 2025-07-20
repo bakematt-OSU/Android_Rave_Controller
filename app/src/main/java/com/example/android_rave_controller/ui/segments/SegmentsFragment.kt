@@ -11,8 +11,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.android_rave_controller.R
-import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
-import com.example.android_rave_controller.arduino_comm_ble.CommandSetters
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentSegmentsBinding
 import com.example.android_rave_controller.models.Effect

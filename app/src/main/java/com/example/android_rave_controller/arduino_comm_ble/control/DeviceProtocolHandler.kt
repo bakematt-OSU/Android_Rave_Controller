@@ -1,23 +1,23 @@
-package com.example.android_rave_controller.arduino_comm_ble
+package com.example.android_rave_controller.arduino_comm_ble.control
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.example.android_rave_controller.models.EffectsRepository
+import kotlin.text.iterator
 
-object DeviceProtocolHandler {
+class DeviceProtocolHandler(private val context: Context) {
 
     val liveLedCount = MutableLiveData<Int>()
-    private lateinit var applicationContext: Context
     private val responseBuffer = StringBuilder()
     private var openBraceCount = 0
+    private lateinit var commandQueue: CommandQueue
 
-    fun initialize(context: Context) {
-        applicationContext = context.applicationContext
+    fun setCommandQueue(queue: CommandQueue) {
+        this.commandQueue = queue
     }
 
     fun onCommandSent() {
-        CommandQueue.onCommandSent()
+        commandQueue.onCommandSent()
     }
 
     fun parseResponse(bytes: ByteArray) {
