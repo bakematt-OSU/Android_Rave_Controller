@@ -13,11 +13,11 @@ object BluetoothService {
     private lateinit var connectionManager: BluetoothConnectionManager
     private lateinit var commandQueue: CommandQueue
 
-    val connectionState: LiveData<Boolean>
-        get() = connectionManager.connectionState
-
-    val connectedDeviceName: LiveData<String?>
-        get() = connectionManager.deviceName
+    // --- MODIFICATION START ---
+    // Keep only the combined connectionStatus LiveData
+    val connectionStatus: LiveData<ConnectionStatus>
+        get() = connectionManager.connectionStatus
+    // --- MODIFICATION END ---
 
     fun initialize(context: Context) {
         val deviceProtocolHandler = DeviceProtocolHandler(context)

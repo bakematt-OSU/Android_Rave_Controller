@@ -10,7 +10,6 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.control.DeviceProtocolHandler
 import java.util.UUID
 
@@ -20,6 +19,8 @@ class BluetoothConnectionManager(
     private val deviceProtocolHandler: DeviceProtocolHandler
 ) {
     private val TAG = "BluetoothConnectionManager"
+
+    private var connectingDeviceName: String? = null // *** ADD THIS LINE ***
 
     // UUIDs remain the same
     private val LED_SERVICE_UUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
@@ -31,18 +32,23 @@ class BluetoothConnectionManager(
     var rxCharacteristic: BluetoothGattCharacteristic? = null
     var txCharacteristic: BluetoothGattCharacteristic? = null
 
-    private val _connectionState = MutableLiveData<Boolean>(false)
-    val connectionState: LiveData<Boolean> = _connectionState
-
-    private val _deviceName = MutableLiveData<String?>(null)
-    val deviceName: LiveData<String?> = _deviceName
+    // --- MODIFICATION START ---
+    // Replace the two separate LiveData objects with a single one
+    private val _connectionStatus = MutableLiveData(ConnectionStatus(false, null))
+    val connectionStatus: LiveData<ConnectionStatus> = _connectionStatus
+    // --- MODIFICATION END ---
 
     private val gattCallback = GattCallbackHandler(this, deviceProtocolHandler)
 
+
     fun connect(device: BluetoothDevice) {
-        _deviceName.postValue(device.name ?: device.address)
+        // --- MODIFICATION START ---
+        connectingDeviceName = device.name ?: device.address
+        _connectionStatus.postValue(ConnectionStatus(false, connectingDeviceName))
+        // --- MODIFICATION END ---
         bluetoothGatt = device.connectGatt(context, false, gattCallback)
     }
+
 
     fun disconnect() {
         bluetoothGatt?.disconnect()
@@ -54,12 +60,19 @@ class BluetoothConnectionManager(
         bluetoothGatt = null
         rxCharacteristic = null
         txCharacteristic = null
-        _connectionState.postValue(false)
-        _deviceName.postValue(null)
+        // --- MODIFICATION START ---
+        // Only clear the connecting device name on a full cleanup/disconnect.
+        connectingDeviceName = null
+        _connectionStatus.postValue(ConnectionStatus(false, null))
+        // --- MODIFICATION END ---
     }
 
+
     fun onDeviceConnected(gatt: BluetoothGatt) {
-        _connectionState.postValue(true)
+        // --- MODIFICATION START ---
+        // Use the stored connectingDeviceName, which is guaranteed to be non-null here.
+        _connectionStatus.postValue(ConnectionStatus(true, connectingDeviceName))
+        // --- MODIFICATION END ---
         bluetoothGatt = gatt
     }
 
@@ -96,13 +109,11 @@ class BluetoothConnectionManager(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             bluetoothGatt?.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
         } else {
+            @Suppress("DEPRECATION")
             cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            @Suppress("DEPRECATION")
             bluetoothGatt?.writeDescriptor(cccd)
         }
-
-        // After notifications are enabled, the device is ready.
-        // Request the effects now.
-//        CommandGetters.requestAllEffects()
     }
 
     fun sendCommand(data: ByteArray) {
@@ -110,8 +121,11 @@ class BluetoothConnectionManager(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 bluetoothGatt?.writeCharacteristic(rxCharacteristic!!, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
             } else {
+                @Suppress("DEPRECATION")
                 rxCharacteristic!!.value = data
+                @Suppress("DEPRECATION")
                 rxCharacteristic!!.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                @Suppress("DEPRECATION")
                 bluetoothGatt!!.writeCharacteristic(rxCharacteristic!!)
             }
         } else {

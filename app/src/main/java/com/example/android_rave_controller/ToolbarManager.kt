@@ -1,3 +1,5 @@
+// In main/java/com/example/android_rave_controller/ToolbarManager.kt
+
 package com.example.android_rave_controller
 
 import android.graphics.Color
@@ -27,7 +29,7 @@ class ToolbarManager(
         setupNavigationListener()
         setupConnectionStatusObserver()
         setupClickListener()
-        updateConnectionStatus(false, null) // Set initial state
+        updateConnectionStatus(false, null)
     }
 
     private fun setupNavigationListener() {
@@ -48,16 +50,24 @@ class ToolbarManager(
         }
     }
 
+    // In main/java/com/example/android_rave_controller/ToolbarManager.kt
+// ...
+
     private fun updateConnectionStatus(isConnected: Boolean, deviceName: String?) {
         if (isConnected) {
             textDeviceName.visibility = View.VISIBLE
-            textDeviceName.text = deviceName.takeIf { !it.isNullOrEmpty() } ?: "Connected"
+            // --- MODIFICATION START ---
+            textDeviceName.text = if (!deviceName.isNullOrEmpty()) deviceName else "Connected"
+            // --- MODIFICATION END ---
             imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_connected)
             imageConnectionStatus.setColorFilter(Color.GREEN)
         } else {
             textDeviceName.visibility = View.GONE
+            // Add this line to explicitly set the text to something, or clear it, when disconnected
+            textDeviceName.text = "Not Connected"
             imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_disconnected)
             imageConnectionStatus.setColorFilter(Color.RED)
         }
     }
+// ...
 }

@@ -101,7 +101,9 @@ class BluetoothDialogFragment : DialogFragment() {
         _binding = ActivityBluetoothBinding.inflate(inflater, container, false)
         dialog?.setTitle("Scan for Devices")
 
-        BluetoothService.initialize(requireContext().applicationContext)
+        // *** THIS IS THE FIX ***
+        // The service is already initialized in MainActivity, so this line is removed.
+        // BluetoothService.initialize(requireContext().applicationContext)
 
         return binding.root
     }
@@ -115,17 +117,22 @@ class BluetoothDialogFragment : DialogFragment() {
             Toast.makeText(context, "Bluetooth is not supported on this device.", Toast.LENGTH_LONG)
                 .show()
             binding.scanButton.isEnabled = false
+            return // Early return
         }
 
         binding.scanButton.setOnClickListener {
             checkPermissionsAndScan()
         }
 
-        BluetoothService.connectionState.observe(viewLifecycleOwner) { isConnected: Boolean ->
-            if (isConnected) {
+        // Observe the connection status and dismiss the dialog upon connection.
+        BluetoothService.connectionStatus.observe(viewLifecycleOwner) { status ->
+            if (status.isConnected) {
                 dismiss()
             }
         }
+
+        // Automatically start scanning if permissions are already granted.
+        checkPermissionsAndScan()
     }
 
     override fun onStart() {
@@ -183,7 +190,7 @@ class BluetoothDialogFragment : DialogFragment() {
     }
 
     private fun startScanning() {
-        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+        if (bluetoothAdapter?.isEnabled == false) {
             Toast.makeText(context, "Bluetooth is not enabled.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -196,7 +203,9 @@ class BluetoothDialogFragment : DialogFragment() {
             return
         }
         devices.clear()
-        deviceListAdapter.notifyDataSetChanged()
+        activity?.runOnUiThread {
+            deviceListAdapter.notifyDataSetChanged()
+        }
         bleScanner?.startScan(listOf(scanFilter), scanSettings, scanCallback)
         Toast.makeText(context, "Scanning for devices...", Toast.LENGTH_SHORT).show()
     }
