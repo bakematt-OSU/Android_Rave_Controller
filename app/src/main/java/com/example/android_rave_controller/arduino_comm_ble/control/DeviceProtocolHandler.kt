@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
 import com.example.android_rave_controller.models.EffectsRepository
+import com.example.android_rave_controller.models.SegmentsRepository
 import kotlin.text.iterator
 
 class DeviceProtocolHandler(private val context: Context) {
@@ -55,6 +56,9 @@ class DeviceProtocolHandler(private val context: Context) {
                 // This part of your logic might need adjustment based on your app's flow.
                 // For now, it continues to request all effects after receiving a status.
                 CommandGetters.requestAllEffects()
+            },
+            onSegmentReceived = { segment ->
+                SegmentsRepository.addSegment(segment)
             }
         )
     }

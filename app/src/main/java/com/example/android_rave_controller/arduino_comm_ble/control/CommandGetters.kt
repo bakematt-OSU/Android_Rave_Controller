@@ -5,7 +5,7 @@ import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
 object CommandGetters {
 
     fun requestDeviceStatus() {
-        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_GET_STATUS.toByte()))
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_GET_ALL_SEGMENT_CONFIGS.toByte()))
     }
 
     fun requestLedCount() {
