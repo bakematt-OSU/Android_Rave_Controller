@@ -79,7 +79,7 @@ class SegmentsFragment : Fragment() {
     }
 
     private fun pushConfiguration() {
-        if (connectionViewModel.isConnected.value != true) {
+        if (connectionViewModel.connectionStatus.value?.isConnected != true) {
             Toast.makeText(context, "Please connect to a device first.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -128,7 +128,7 @@ class SegmentsFragment : Fragment() {
         if (loadedConfig != null) {
             segmentViewModel.segments.value = loadedConfig.segments.toMutableList()
             EffectsRepository.updateEffects(loadedConfig.effects.map { Effect(it, emptyList()) })
-            if (connectionViewModel.isConnected.value == true) {
+            if (connectionViewModel.connectionStatus.value?.isConnected == true) {
                 pushConfiguration()
             }
             Toast.makeText(context, "'$filename' loaded.", Toast.LENGTH_SHORT).show()

@@ -4,19 +4,14 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
+data class ConnectionStatus(val isConnected: Boolean, val deviceName: String?)
+
 class ConnectionViewModel : ViewModel() {
 
-    // LiveData for the connection status (true/false)
-    private val _isConnected = MutableLiveData<Boolean>()
-    val isConnected: LiveData<Boolean> = _isConnected
+    private val _connectionStatus = MutableLiveData<ConnectionStatus>()
+    val connectionStatus: LiveData<ConnectionStatus> = _connectionStatus
 
-    // LiveData for the connected device's name
-    private val _deviceName = MutableLiveData<String?>()
-    val deviceName: LiveData<String?> = _deviceName
-
-    // Function to update the status and device name together
     fun updateConnection(newStatus: Boolean, newDeviceName: String?) {
-        _isConnected.value = newStatus
-        _deviceName.value = newDeviceName
+        _connectionStatus.value = ConnectionStatus(newStatus, newDeviceName)
     }
 }

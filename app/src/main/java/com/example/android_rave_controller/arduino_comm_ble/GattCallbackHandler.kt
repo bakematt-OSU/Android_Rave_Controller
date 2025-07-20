@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.util.Log
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.control.DeviceProtocolHandler
 import java.util.UUID
 
@@ -66,6 +67,8 @@ class GattCallbackHandler(
         super.onDescriptorWrite(gatt, descriptor, status)
         if (status == BluetoothGatt.GATT_SUCCESS) {
             Log.d(TAG, "Descriptor write successful.")
+            // ADD THIS LINE
+            CommandGetters.requestAllEffects()
         } else {
             Log.e(TAG, "Descriptor write failed with status: $status")
         }

@@ -7,11 +7,11 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.control.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentDeviceBinding
+import com.example.android_rave_controller.ui.device.DeviceViewModel
 
 class DeviceFragment : Fragment() {
 
@@ -19,7 +19,7 @@ class DeviceFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val connectionViewModel: ConnectionViewModel by activityViewModels()
-    private val deviceViewModel: DeviceViewModel by viewModels()
+    private val deviceViewModel: DeviceViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,8 +32,11 @@ class DeviceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        connectionViewModel.deviceName.observe(viewLifecycleOwner) { name ->
-            binding.textViewDeviceName.text = name ?: "Not Connected"
+        connectionViewModel.connectionStatus.observe(viewLifecycleOwner) { status ->
+            binding.textViewDeviceName.text = status.deviceName ?: "Not Connected"
+            if (status.isConnected) {
+                CommandGetters.requestLedCount()
+            }
         }
 
         deviceViewModel.deviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
@@ -41,16 +44,12 @@ class DeviceFragment : Fragment() {
         }
 
         binding.buttonSaveConfigToDevice.setOnClickListener {
-            if (connectionViewModel.isConnected.value == true) {
+            if (connectionViewModel.connectionStatus.value?.isConnected == true) {
                 CommandSetters.saveConfigurationToDevice()
                 Toast.makeText(context, "Saving configuration to device...", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "Not connected to a device.", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        if (connectionViewModel.isConnected.value == true) {
-            CommandGetters.requestLedCount()
         }
     }
 

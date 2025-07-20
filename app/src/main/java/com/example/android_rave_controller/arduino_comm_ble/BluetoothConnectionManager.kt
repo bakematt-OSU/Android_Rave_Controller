@@ -10,6 +10,7 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.example.android_rave_controller.arduino_comm_ble.control.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.control.DeviceProtocolHandler
 import java.util.UUID
 
@@ -98,6 +99,10 @@ class BluetoothConnectionManager(
             cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             bluetoothGatt?.writeDescriptor(cccd)
         }
+
+        // After notifications are enabled, the device is ready.
+        // Request the effects now.
+//        CommandGetters.requestAllEffects()
     }
 
     fun sendCommand(data: ByteArray) {

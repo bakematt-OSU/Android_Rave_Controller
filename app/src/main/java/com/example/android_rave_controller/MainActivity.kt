@@ -1,11 +1,6 @@
 package com.example.android_rave_controller
 
-import android.graphics.Color
 import android.os.Bundle
-import android.view.View
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
@@ -13,10 +8,9 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import com.example.android_rave_controller.databinding.ActivityMainBinding
-import com.example.android_rave_controller.arduino_comm_ble.BluetoothDialogFragment
-import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
+import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
+import com.example.android_rave_controller.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -24,14 +18,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
     private val connectionViewModel: ConnectionViewModel by viewModels()
+    private lateinit var toolbarManager: ToolbarManager
 
-    // Declare properties to hold the views from the toolbar
-    private lateinit var toolbarTitle: TextView
-    private lateinit var textDeviceName: TextView
-    private lateinit var imageConnectionStatus: ImageView
-    private lateinit var statusLayout: LinearLayout
-
-    // Add this declaration and initialization for appBarConfiguration
     private val appBarConfiguration by lazy {
         AppBarConfiguration(
             setOf(
@@ -45,53 +33,35 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize BluetoothService here before observing or using it
+        // Initialize BluetoothService once for the app's lifecycle.
         BluetoothService.initialize(applicationContext)
 
+        // Setup ActionBar
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        val toolbarContent = binding.toolbar.findViewById<View>(R.id.toolbar_content)
-        toolbarTitle = toolbarContent.findViewById(R.id.toolbar_title)
-        textDeviceName = toolbarContent.findViewById(R.id.text_device_name)
-        imageConnectionStatus = toolbarContent.findViewById(R.id.image_connection_status)
-        statusLayout = toolbarContent.findViewById(R.id.status_layout)
-
+        // Setup Navigation
         val navView: BottomNavigationView = binding.navView
         navController = findNavController(R.id.nav_host_fragment_activity_main)
-
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            toolbarTitle.text = destination.label
-        }
+        // Delegate toolbar management
+        toolbarManager = ToolbarManager(this, binding.toolbar, navController, connectionViewModel)
+        toolbarManager.initialize()
 
-        BluetoothService.connectionState.observe(this) { isConnected: Boolean ->
+        // CORRECTED OBSERVERS
+        // This observer reacts to changes in connection status
+        BluetoothService.connectionState.observe(this) { isConnected ->
             connectionViewModel.updateConnection(isConnected, BluetoothService.connectedDeviceName.value)
         }
 
-        connectionViewModel.isConnected.observe(this) { isConnected ->
-            updateConnectionStatus(isConnected, connectionViewModel.deviceName.value)
-        }
-
-        statusLayout.setOnClickListener {
-            BluetoothDialogFragment().show(supportFragmentManager, "BluetoothDialog")
-        }
-
-        updateConnectionStatus(false, null)
-    }
-
-    private fun updateConnectionStatus(isConnected: Boolean, deviceName: String?) {
-        if (isConnected) {
-            textDeviceName.visibility = View.VISIBLE
-            textDeviceName.text = deviceName.takeIf { !it.isNullOrEmpty() } ?: "Connected"
-            imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_connected)
-            imageConnectionStatus.setColorFilter(Color.GREEN)
-        } else {
-            textDeviceName.visibility = View.GONE
-            imageConnectionStatus.setImageResource(R.drawable.ic_bluetooth_disconnected)
-            imageConnectionStatus.setColorFilter(Color.RED)
+        // This observer reacts to changes in the device name
+        BluetoothService.connectedDeviceName.observe(this) { deviceName ->
+            // Update the connection view model only if currently connected
+            if (connectionViewModel.connectionStatus.value?.isConnected == true) {
+                connectionViewModel.updateConnection(true, deviceName)
+            }
         }
     }
 }

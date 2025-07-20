@@ -11,7 +11,68 @@ import com.google.gson.JsonParser
 object JsonResponseParser {
     private val gson = Gson()
 
-    fun parse(jsonString: String, onEffectsReceived: (List<Effect>) -> Unit, onStatusReceived: (Status) -> Unit) {
+    /**
+     * Processes a StringBuilder buffer to find and parse complete JSON objects.
+     * This version uses a loop to handle multiple JSON objects in the buffer and
+     * correctly waits for incomplete objects to be fully received.
+     *
+     * @param buffer The StringBuilder containing raw data from the device.
+     * @param onEffectsReceived Lambda to execute when an Effect object is parsed.
+     * @param onStatusReceived Lambda to execute when a Status object is parsed.
+     */
+    fun processBuffer(buffer: StringBuilder, onEffectsReceived: (List<Effect>) -> Unit, onStatusReceived: (Status) -> Unit) {
+        while (buffer.isNotEmpty()) {
+            var braceCount = 0
+            var startIndex: Int
+            var endIndex = -1
+
+            // Find the start of the first potential JSON object
+            startIndex = buffer.indexOf('{')
+            if (startIndex == -1) {
+                // No start brace found, the buffer contains non-JSON data, so clear it.
+                buffer.clear()
+                return
+            }
+
+            // Discard any text before the first '{'
+            if (startIndex > 0) {
+                buffer.delete(0, startIndex)
+            }
+            // Reset startIndex to 0 as we've trimmed the buffer
+            startIndex = 0
+
+
+            // Now, find the corresponding end brace for the object starting at index 0
+            for (i in startIndex until buffer.length) {
+                if (buffer[i] == '{') {
+                    braceCount++
+                } else if (buffer[i] == '}') {
+                    braceCount--
+                    if (braceCount == 0) {
+                        endIndex = i
+                        break // Found a complete JSON object
+                    }
+                }
+            }
+
+            if (endIndex != -1) {
+                // If a complete object is found, extract it
+                val jsonString = buffer.substring(startIndex, endIndex + 1)
+                parse(jsonString, onEffectsReceived, onStatusReceived)
+
+                // Remove the processed JSON object from the buffer
+                buffer.delete(0, endIndex + 1)
+
+                // The 'while' loop will continue to process the rest of the buffer
+            } else {
+                // The buffer contains an incomplete JSON object, so we break the loop
+                // and wait for more data to arrive in the next BLE packet.
+                return
+            }
+        }
+    }
+
+    private fun parse(jsonString: String, onEffectsReceived: (List<Effect>) -> Unit, onStatusReceived: (Status) -> Unit) {
         try {
             val jsonObject = JsonParser.parseString(jsonString).asJsonObject
             if (jsonObject.has("effect") && jsonObject.has("params")) {
