@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
+import com.example.android_rave_controller.arduino_comm_ble.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.FragmentDeviceBinding
@@ -39,7 +41,7 @@ class DeviceFragment : Fragment() {
 
         binding.buttonSaveConfigToDevice.setOnClickListener {
             if (connectionViewModel.isConnected.value == true) {
-                DeviceProtocolHandler.saveConfigurationToDevice()
+                CommandSetters.saveConfigurationToDevice()
                 Toast.makeText(context, "Saving configuration to device...", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "Not connected to a device.", Toast.LENGTH_SHORT).show()
@@ -48,7 +50,7 @@ class DeviceFragment : Fragment() {
 
         // Request the LED count when the fragment is viewed
         if (connectionViewModel.isConnected.value == true) {
-            DeviceProtocolHandler.requestLedCount()
+            CommandGetters.requestLedCount()
         }
     }
 

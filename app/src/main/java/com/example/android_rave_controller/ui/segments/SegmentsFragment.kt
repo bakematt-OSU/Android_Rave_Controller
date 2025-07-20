@@ -11,8 +11,9 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.example.android_rave_controller.R
+import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
+import com.example.android_rave_controller.arduino_comm_ble.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
-import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.FragmentSegmentsBinding
 import com.example.android_rave_controller.models.Effect
 import com.example.android_rave_controller.models.EffectsRepository
@@ -59,7 +60,7 @@ class SegmentsFragment : Fragment() {
                 .setTitle(getString(R.string.dialog_get_config_title))
                 .setMessage(getString(R.string.dialog_get_config_message))
                 .setPositiveButton(getString(R.string.dialog_yes)) { _, _ ->
-                    DeviceProtocolHandler.requestDeviceStatus()
+                    CommandGetters.requestDeviceStatus()
                     Toast.makeText(context, "Refreshing configuration…", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton(getString(R.string.dialog_no), null)
@@ -84,7 +85,7 @@ class SegmentsFragment : Fragment() {
         }
         segmentViewModel.segments.value?.let {
             if (it.isNotEmpty()) {
-                DeviceProtocolHandler.sendFullConfiguration(it)
+                CommandSetters.sendFullConfiguration(it)
                 Toast.makeText(context, "Pushing configuration…", Toast.LENGTH_SHORT).show()
             }
         }

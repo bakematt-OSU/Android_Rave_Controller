@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import com.example.android_rave_controller.R
+import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.DialogSegmentsWizardBinding
 import com.example.android_rave_controller.models.Effect
@@ -68,7 +69,7 @@ class SegmentsWizardDialogFragment : DialogFragment() {
         DeviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
             maxLedCount = count
         }
-        DeviceProtocolHandler.requestLedCount()
+        CommandGetters.requestLedCount()
     }
 
     private fun setupEffectsSpinner() {

@@ -130,7 +130,7 @@ object BluetoothService {
                 Log.d(TAG, "Descriptor write successful: ${descriptor.uuid}")
                 showToast("Connected to Rave Controller!")
                 // After successful connection and notification setup, request device status
-                DeviceProtocolHandler.requestDeviceStatus() // Trigger the initial status request
+                CommandGetters.requestDeviceStatus() // Trigger the initial status request
             } else {
                 Log.e(TAG, "Descriptor write failed: $status")
                 showToast("Failed to enable notifications.")

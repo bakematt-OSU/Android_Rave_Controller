@@ -21,6 +21,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.android_rave_controller.R
+import com.example.android_rave_controller.arduino_comm_ble.CommandGetters
 import com.example.android_rave_controller.arduino_comm_ble.DeviceProtocolHandler
 import com.example.android_rave_controller.databinding.ActivitySegmentConfigurationBinding
 import com.example.android_rave_controller.models.Effect
@@ -69,7 +70,7 @@ class SegmentConfigurationActivity : AppCompatActivity() {
         setupStaticUI()
         setupListeners()
         setupViewModels()
-        DeviceProtocolHandler.requestLedCount()
+        CommandGetters.requestLedCount()
     }
 
     private fun setupStaticUI() {
