@@ -48,21 +48,6 @@ class BluetoothConnectionManager(
 
     private val gattCallback = GattCallbackHandler(this, deviceProtocolHandler)
 
-    // --- ADD THIS BLOCK ---
-    init {
-        heartbeatRunnable = object : Runnable {
-            override fun run() {
-                if (_connectionStatus.value?.isConnected == true) {
-                    Log.d(TAG, "Sending BLE heartbeat...")
-                    BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_HEARTBEAT.toByte()))
-                    // Schedule the next heartbeat
-                    handler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
-                }
-            }
-        }
-    }
-    // --- END ADDED BLOCK ---
-
 
     fun connect(device: BluetoothDevice) {
         connectingDeviceName = device.name ?: device.address

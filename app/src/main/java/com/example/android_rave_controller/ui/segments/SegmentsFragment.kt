@@ -60,6 +60,9 @@ class SegmentsFragment : Fragment() {
                 .setTitle(getString(R.string.dialog_get_config_title))
                 .setMessage(getString(R.string.dialog_get_config_message))
                 .setPositiveButton(getString(R.string.dialog_yes)) { _, _ ->
+                    // --- FIX: Add this line ---
+                    segmentViewModel.clearAllSegments()
+                    // -------------------------
                     CommandGetters.requestDeviceStatus()
                     Toast.makeText(context, "Refreshing configuration…", Toast.LENGTH_SHORT).show()
                 }

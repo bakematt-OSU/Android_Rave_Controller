@@ -6,19 +6,42 @@ import com.example.android_rave_controller.models.*
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException // Import JsonSyntaxException
 
 object BLE_ResponseParser {
 
     fun parseResponse(responseBuffer: StringBuilder, bytes: ByteArray, deviceProtocolHandler: DeviceProtocolHandler) {
-        // Handle the initial effect count message
+        // --- ADD THIS BLOCK TO HANDLE ACKS FOR THE CONFIGURATION PUSH ---
+        if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_ACK.toByte()) {
+            deviceProtocolHandler.onAckReceived()
+            return // Stop further processing for this ACK
+        }
+        // --- End of ADDED BLOCK ---
+
+
+        // Handle the initial effect count message (This part is already correct)
         if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_ALL_EFFECTS.toByte()) {
             if (bytes.size >= 3) {
                 val effectCount = ((bytes[1].toInt() and 0xFF) shl 8) or (bytes[2].toInt() and 0xFF)
                 // Acknowledge to start receiving the effect info
+                // ... existing code ...
                 BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
             }
             return
         }
+
+        // --- FIX: Add this block to handle the segment count ---
+        if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_ALL_SEGMENT_CONFIGS.toByte()) {
+            if (bytes.size >= 3) {
+                val segmentCount = ((bytes[1].toInt() and 0xFF) shl 8) or (bytes[2].toInt() and 0xFF)
+                // If there are segments to receive, send an ACK to start the process.
+                if (segmentCount > 0) {
+                    BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
+                }
+            }
+            return // Stop further processing for this message
+        }
+        // --- End of FIX ---
 
         if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_LED_COUNT.toByte()) {
             if (bytes.size >= 3) {
@@ -29,7 +52,7 @@ object BLE_ResponseParser {
         }
 
 
-        // Append incoming text to the buffer
+        // Append incoming text to the buffer (this part is correct)
         val incomingText = bytes.toString(Charsets.UTF_8)
         responseBuffer.append(incomingText)
 
@@ -56,6 +79,7 @@ object BLE_ResponseParser {
             },
             onSegmentReceived = { segment ->
                 SegmentsRepository.addSegment(segment)
+                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
             }
         )
     }
@@ -77,13 +101,16 @@ object JsonResponseParser {
 
             startIndex = buffer.indexOf('{')
             if (startIndex == -1) {
+                // No opening brace found, clear buffer and wait for more data.
                 buffer.clear()
                 return
             }
 
             if (startIndex > 0) {
+                // Remove leading non-JSON characters
                 buffer.delete(0, startIndex)
             }
+            // Reset startIndex to 0 after deleting leading characters.
             startIndex = 0
 
             for (i in startIndex until buffer.length) {
@@ -100,10 +127,23 @@ object JsonResponseParser {
 
             if (endIndex != -1) {
                 val jsonString = buffer.substring(startIndex, endIndex + 1)
-                parse(jsonString, onEffectsReceived, onStatusReceived, onSegmentReceived)
-
-                buffer.delete(0, endIndex + 1)
+                try {
+                    parse(jsonString, onEffectsReceived, onStatusReceived, onSegmentReceived)
+                    // If parsing is successful, remove the parsed JSON string from the buffer
+                    buffer.delete(0, endIndex + 1)
+                } catch (e: JsonSyntaxException) { // Catch specific JSON parsing errors
+                    Log.e("JsonResponseParser", "Malformed JSON detected, clearing buffer: $jsonString", e)
+                    // If parsing fails due to malformed JSON, clear the entire buffer
+                    // to prevent getting stuck on corrupted data.
+                    buffer.clear()
+                    return // Exit and wait for new, clean data
+                } catch (e: Exception) { // Catch any other unexpected exceptions
+                    Log.e("JsonResponseParser", "Unexpected error parsing JSON, clearing buffer: $jsonString", e)
+                    buffer.clear()
+                    return
+                }
             } else {
+                // No complete JSON object found yet, wait for more data.
                 return
             }
         }
@@ -115,6 +155,8 @@ object JsonResponseParser {
         onStatusReceived: (Status) -> Unit,
         onSegmentReceived: (Segment) -> Unit
     ) {
+        // This try-catch is now redundant due to the one in processBuffer, but keeping it
+        // for defensive programming if parse is called directly elsewhere.
         try {
             val jsonObject = JsonParser.parseString(jsonString).asJsonObject
             if (jsonObject.has("effect") && jsonObject.has("params")) {
@@ -128,7 +170,9 @@ object JsonResponseParser {
                 onSegmentReceived(segment)
             }
         } catch (e: Exception) {
-            Log.e("JsonResponseParser", "Failed to parse JSON: $jsonString", e)
+            // Log for debugging, but the outer catch in processBuffer will handle buffer clearing
+            Log.e("JsonResponseParser", "Inner parse failed for: $jsonString", e)
+            throw e // Re-throw to be caught by the outer block in processBuffer
         }
     }
 
