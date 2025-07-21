@@ -1,3 +1,5 @@
+// In main/java/com/example/android_rave_controller/arduino_comm_ble/BluetoothConnectionManager.kt
+
 package com.example.android_rave_controller.arduino_comm_ble
 
 import android.annotation.SuppressLint
@@ -7,10 +9,6 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.content.Context
 import android.os.Build
-// --- ADD THESE IMPORTS ---
-import android.os.Handler
-import android.os.Looper
-// --- END IMPORTS ---
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -27,11 +25,9 @@ class BluetoothConnectionManager(
 
     private var connectingDeviceName: String? = null
 
-    // --- ADD THESE LINES ---
-    private val handler = Handler(Looper.getMainLooper())
-    private lateinit var heartbeatRunnable: Runnable
-    private val HEARTBEAT_INTERVAL_MS = 1500L
-    // --- END ADDED LINES ---
+    // Removed heartbeatRunnable and HEARTBEAT_INTERVAL_MS as requested.
+    // The 'handler' and its imports are also removed since they were only
+    // used for heartbeat functionality.
 
     // UUIDs remain the same
     private val LED_SERVICE_UUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
@@ -62,9 +58,7 @@ class BluetoothConnectionManager(
     }
 
     private fun cleanup() {
-        // --- ADD THIS LINE ---
-        handler.removeCallbacks(heartbeatRunnable)
-        // --- END ADDED LINE ---
+        // Removed handler.removeCallbacks(heartbeatRunnable) as heartbeat functionality is removed.
         bluetoothGatt?.close()
         bluetoothGatt = null
         rxCharacteristic = null
@@ -119,20 +113,32 @@ class BluetoothConnectionManager(
         }
     }
 
+    /**
+     * Sends a command (byte array) to the Arduino via the RX characteristic.
+     * This function is called by the CommandQueue.
+     * @param data The byte array representing the command to send.
+     */
     fun sendCommand(data: ByteArray) {
         if (rxCharacteristic != null && bluetoothGatt != null) {
+            // Log the actual bytes being sent for debugging
+            Log.d(TAG, "Attempting to send command: ${data.joinToString(separator = " ") { String.format("%02X", it) }} (${data.size} bytes)")
+
+            // Set the value of the characteristic
+            rxCharacteristic!!.value = data
+
+            // Determine the write type based on Android version
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // For Android 13 (API 33) and above, use the new writeCharacteristic method
                 bluetoothGatt?.writeCharacteristic(rxCharacteristic!!, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
             } else {
-                @Suppress("DEPRECATION")
-                rxCharacteristic!!.value = data
+                // For older Android versions, set writeType and then call writeCharacteristic
                 @Suppress("DEPRECATION")
                 rxCharacteristic!!.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
                 @Suppress("DEPRECATION")
                 bluetoothGatt!!.writeCharacteristic(rxCharacteristic!!)
             }
         } else {
-            Log.w(TAG, "Cannot send command, characteristic or gatt is null")
+            Log.w(TAG, "Cannot send command, rxCharacteristic or bluetoothGatt is null. Is device connected?")
         }
     }
 }

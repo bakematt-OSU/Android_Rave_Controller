@@ -2,11 +2,12 @@
 package com.example.android_rave_controller.arduino_comm_ble.control
 
 object LedControllerCommands {
-    const val CMD_GET_LED_COUNT = 0x0D
-    const val CMD_GET_ALL_SEGMENT_CONFIGS = 0x0E
-    const val CMD_SET_ALL_SEGMENT_CONFIGS = 0x0F // New
-    const val CMD_GET_ALL_EFFECTS = 0x10         // New
-    const val CMD_SAVE_CONFIG = 0x12             // New
+    // Explicitly define command constants as Byte type
+    const val CMD_GET_LED_COUNT: Byte = 0x0D.toByte()
+    const val CMD_GET_ALL_SEGMENT_CONFIGS: Byte = 0x0E.toByte()
+    const val CMD_SET_ALL_SEGMENT_CONFIGS: Byte = 0x0F.toByte() // New
+    const val CMD_GET_ALL_EFFECTS: Byte = 0x10.toByte()         // New
+    const val CMD_SAVE_CONFIG: Byte = 0x12.toByte()             // New
     // Response codes
-    const val CMD_ACK = 0xA0
+    const val CMD_ACK_GENERIC: Byte = 0xA0.toByte() // Explicitly define as Byte
 }
