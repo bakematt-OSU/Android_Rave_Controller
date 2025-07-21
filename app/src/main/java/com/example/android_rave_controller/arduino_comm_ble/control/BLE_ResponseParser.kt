@@ -110,29 +110,87 @@ object JsonResponseParser {
             }
         }
     }
+//WORKING
+//    private fun parse(
+//        jsonString: String,
+//        onEffectsReceived: (List<Effect>) -> Unit,
+//        onStatusReceived: (Status) -> Unit,
+//        onSegmentReceived: (Segment) -> Unit
+//    ) {
+//        try {
+//            val jsonObject = JsonParser.parseString(jsonString).asJsonObject
+//            if (jsonObject.has("effect") && jsonObject.has("params")) {
+//                val effect = gson.fromJson(jsonObject, Effect::class.java)
+//                onEffectsReceived(listOf(effect))
+//            } else if (jsonObject.has("segments") && jsonObject.has("available_effects")) {
+//                val status = parseStatusFromJson(jsonObject)
+//                onStatusReceived(status)
+//            } else if (jsonObject.has("id") && jsonObject.has("startLed") && jsonObject.has("endLed")) {
+//                val segment = gson.fromJson(jsonString, Segment::class.java)
+//                onSegmentReceived(segment)
+//            }
+//        } catch (e: Exception) {
+//            Log.e("JsonResponseParser", "Failed to parse JSON: $jsonString", e)
+//        }
+//    }
+private fun parse(
+    jsonString: String,
+    onEffectsReceived: (List<Effect>) -> Unit,
+    onStatusReceived: (Status) -> Unit,
+    onSegmentReceived: (Segment) -> Unit
+) {
+    try {
+        val jsonObject = JsonParser.parseString(jsonString).asJsonObject
+        if (jsonObject.has("effect") && jsonObject.has("params")) {
+            val effect = gson.fromJson(jsonObject, Effect::class.java)
+            onEffectsReceived(listOf(effect))
 
-    private fun parse(
-        jsonString: String,
-        onEffectsReceived: (List<Effect>) -> Unit,
-        onStatusReceived: (Status) -> Unit,
-        onSegmentReceived: (Segment) -> Unit
-    ) {
-        try {
-            val jsonObject = JsonParser.parseString(jsonString).asJsonObject
-            if (jsonObject.has("effect") && jsonObject.has("params")) {
-                val effect = gson.fromJson(jsonObject, Effect::class.java)
-                onEffectsReceived(listOf(effect))
-            } else if (jsonObject.has("segments") && jsonObject.has("available_effects")) {
-                val status = parseStatusFromJson(jsonObject)
-                onStatusReceived(status)
-            } else if (jsonObject.has("id") && jsonObject.has("startLed") && jsonObject.has("endLed")) {
-                val segment = gson.fromJson(jsonString, Segment::class.java)
-                onSegmentReceived(segment)
+        } else if (jsonObject.has("segments") && jsonObject.has("available_effects")) {
+            val status = parseStatusFromJson(jsonObject)
+            onStatusReceived(status)
+
+        } else if (jsonObject.has("id") && jsonObject.has("startLed") && jsonObject.has("endLed")) {
+            // --- FIX STARTS HERE ---
+            // Manually parse the segment to capture all parameters, not just the main fields.
+            val id = jsonObject.get("id").asInt
+            val name = jsonObject.get("name").asString
+            val startLed = jsonObject.get("startLed").asInt
+            val endLed = jsonObject.get("endLed").asInt
+            val effect = jsonObject.get("effect").asString
+            val brightness = jsonObject.get("brightness").asInt
+
+            val parameters = mutableMapOf<String, Any>()
+            val knownKeys = setOf("id", "name", "startLed", "endLed", "effect", "brightness")
+
+            // Iterate over all keys in the JSON and add any unknown keys to the parameters map
+            for ((key, valueElement) in jsonObject.entrySet()) {
+                if (key !in knownKeys) {
+                    val value = when {
+                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isBoolean -> valueElement.asBoolean
+                        // Let GSON handle number conversion to avoid precision issues
+                        valueElement.isJsonPrimitive && valueElement.asJsonPrimitive.isNumber -> valueElement.asNumber
+                        else -> gson.fromJson(valueElement, Any::class.java)
+                    }
+                    parameters[key] = value
+                }
             }
-        } catch (e: Exception) {
-            Log.e("JsonResponseParser", "Failed to parse JSON: $jsonString", e)
+
+            val segment = Segment(
+                id = id,
+                name = name,
+                startLed = startLed,
+                endLed = endLed,
+                effect = effect,
+                brightness = brightness,
+                parameters = parameters
+            )
+            onSegmentReceived(segment)
+            // --- FIX ENDS HERE ---
         }
+    } catch (e: Exception) {
+        Log.e("JsonResponseParser", "Failed to parse JSON: $jsonString", e)
     }
+}
 
     private fun parseStatusFromJson(jsonObject: JsonObject): Status {
         val effectNames = gson.fromJson(jsonObject.getAsJsonArray("available_effects"), Array<String>::class.java).toList()

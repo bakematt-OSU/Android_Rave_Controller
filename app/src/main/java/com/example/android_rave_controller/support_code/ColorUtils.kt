@@ -74,6 +74,36 @@ fun showColorPickerDialog(
  * @param onColorStaged A lambda to execute when a color is selected from the picker,
  * used to update the stagedParameters map.
  */
+//OLD:
+//fun Button.setupAsColorPicker(
+//    context: Context,
+//    parameterName: String,
+//    stagedParameters: Map<String, Any>,
+//    onColorStaged: (Int) -> Unit
+//) {
+//    val rawColor = stagedParameters[parameterName]
+//    val colorInt = when (rawColor) {
+//        is Double -> rawColor.toInt()
+//        is Int -> rawColor
+//        else -> Color.GRAY
+//    }
+//    // Ensure full alpha for display
+//    val displayColor = colorInt or -0x1000000 // or 0xFF000000.toInt()
+//
+//    this.text = "Select Color"
+//    this.setBackgroundColor(displayColor)
+//    this.setTextColor(if (isLightColor(displayColor)) Color.BLACK else Color.WHITE)
+//
+//    this.setOnClickListener {
+//        showColorPickerDialog(context, "Choose $parameterName Color", displayColor) { finalColor ->
+//            // Update the UI of the button itself
+//            this.setBackgroundColor(finalColor or -0x1000000)
+//            this.setTextColor(if (isLightColor(finalColor)) Color.BLACK else Color.WHITE)
+//            // Execute the provided lambda to update the state
+//            onColorStaged(finalColor)
+//        }
+//    }
+//}
 fun Button.setupAsColorPicker(
     context: Context,
     parameterName: String,
@@ -81,11 +111,17 @@ fun Button.setupAsColorPicker(
     onColorStaged: (Int) -> Unit
 ) {
     val rawColor = stagedParameters[parameterName]
+
+    // --- FIX IS HERE ---
+    // The when block now correctly handles any Number type, preventing the default to gray.
     val colorInt = when (rawColor) {
-        is Double -> rawColor.toInt()
         is Int -> rawColor
+        is Double -> rawColor.toInt()
+        is Number -> rawColor.toInt() // This new line handles other numeric types
         else -> Color.GRAY
     }
+    // --- END OF FIX ---
+
     // Ensure full alpha for display
     val displayColor = colorInt or -0x1000000 // or 0xFF000000.toInt()
 
