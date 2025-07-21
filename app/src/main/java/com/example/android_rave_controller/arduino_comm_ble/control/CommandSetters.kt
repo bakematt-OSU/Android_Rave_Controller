@@ -31,6 +31,10 @@ object CommandSetters {
         BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_SAVE_CONFIG.toByte()))
     }
 
+    fun clearSegmentsOnDevice() {
+        BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_CLEAR_SEGMENTS.toByte()))
+    }
+
     fun sendParameterUpdate(segmentId: Int, paramName: String, paramType: String, value: Any) {
         val segIndex = SegmentsRepository.segments.value?.indexOfFirst { it.id == segmentId } ?: -1
         if (segIndex == -1) return

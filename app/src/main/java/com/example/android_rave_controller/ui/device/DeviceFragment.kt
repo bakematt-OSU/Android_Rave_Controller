@@ -11,6 +11,8 @@ import com.example.android_rave_controller.arduino_comm_ble.control.CommandGette
 import com.example.android_rave_controller.arduino_comm_ble.control.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentDeviceBinding
+import android.app.AlertDialog // <-- Make sure this is imported
+import com.example.android_rave_controller.R // <-- Make sure this is imported
 import com.example.android_rave_controller.models.Effect
 
 class DeviceFragment : Fragment() {
@@ -55,6 +57,21 @@ class DeviceFragment : Fragment() {
             if (connectionViewModel.connectionStatus.value?.isConnected == true) {
                 CommandSetters.saveConfigurationToDevice()
                 Toast.makeText(context, "Saving configuration to device...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Not connected to a device.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        binding.buttonClearSegmentsOnDevice.setOnClickListener {
+            if (connectionViewModel.connectionStatus.value?.isConnected == true) {
+                AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
+                    .setTitle("Clear All Segments?")
+                    .setMessage("This will remove all segments from the device. This action cannot be undone.\n\nAre you sure?")
+                    .setPositiveButton("Yes, Clear Them") { _, _ ->
+                        CommandSetters.clearSegmentsOnDevice()
+                        Toast.makeText(context, "Clearing segments...", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             } else {
                 Toast.makeText(context, "Not connected to a device.", Toast.LENGTH_SHORT).show()
             }
