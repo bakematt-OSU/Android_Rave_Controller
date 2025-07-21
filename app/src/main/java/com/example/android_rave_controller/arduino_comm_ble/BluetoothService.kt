@@ -12,6 +12,7 @@ object BluetoothService {
 
     private lateinit var connectionManager: BluetoothConnectionManager
     private lateinit var commandQueue: CommandQueue
+    lateinit var deviceProtocolHandler: DeviceProtocolHandler
 
     // --- MODIFICATION START ---
     // Keep only the combined connectionStatus LiveData
@@ -20,7 +21,7 @@ object BluetoothService {
     // --- MODIFICATION END ---
 
     fun initialize(context: Context) {
-        val deviceProtocolHandler = DeviceProtocolHandler(context)
+        deviceProtocolHandler = DeviceProtocolHandler(context)
         connectionManager = BluetoothConnectionManager(context, deviceProtocolHandler)
         commandQueue = CommandQueue(connectionManager)
         deviceProtocolHandler.setCommandQueue(commandQueue)

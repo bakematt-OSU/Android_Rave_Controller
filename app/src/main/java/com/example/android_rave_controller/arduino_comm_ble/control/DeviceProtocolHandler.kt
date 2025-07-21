@@ -22,44 +22,6 @@ class DeviceProtocolHandler(private val context: Context) {
     }
 
     fun parseResponse(bytes: ByteArray) {
-        // Handle the initial effect count message
-        if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_ALL_EFFECTS.toByte()) {
-            if (bytes.size >= 3) {
-                val effectCount = ((bytes[1].toInt() and 0xFF) shl 8) or (bytes[2].toInt() and 0xFF)
-                // Acknowledge to start receiving the effect info
-                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
-            }
-            return
-        }
-
-        // Append incoming text to the buffer
-        val incomingText = bytes.toString(Charsets.UTF_8)
-        responseBuffer.append(incomingText)
-
-        // Delegate buffer processing to the parser
-        JsonResponseParser.processBuffer(responseBuffer,
-            onEffectsReceived = { effects ->
-                val currentEffects = EffectsRepository.effects.value?.toMutableList() ?: mutableListOf()
-                effects.forEach { effect ->
-                    val existingIndex = currentEffects.indexOfFirst { it.name == effect.name }
-                    if (existingIndex != -1) {
-                        currentEffects[existingIndex] = effect
-                    } else {
-                        currentEffects.add(effect)
-                    }
-                }
-                EffectsRepository.updateEffects(currentEffects)
-                // Acknowledge to get the next effect
-                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
-            },
-            onStatusReceived = { status ->
-                // This part of your logic might need adjustment based on your app's flow.
-                // For now, it continues to request all effects after receiving a status.
-                CommandGetters.requestAllEffects()
-            },
-            onSegmentReceived = { segment ->
-                SegmentsRepository.addSegment(segment)
-            }
-        )
+        BLE_ResponseParser.parseResponse(responseBuffer, bytes, this)
     }
 }

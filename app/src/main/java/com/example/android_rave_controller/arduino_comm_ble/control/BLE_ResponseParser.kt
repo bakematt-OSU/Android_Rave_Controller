@@ -1,12 +1,65 @@
 package com.example.android_rave_controller.arduino_comm_ble.control
 
 import android.util.Log
-import com.example.android_rave_controller.models.Effect
-import com.example.android_rave_controller.models.Segment
-import com.example.android_rave_controller.models.Status
+import com.example.android_rave_controller.arduino_comm_ble.BluetoothService
+import com.example.android_rave_controller.models.*
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+
+object BLE_ResponseParser {
+
+    fun parseResponse(responseBuffer: StringBuilder, bytes: ByteArray, deviceProtocolHandler: DeviceProtocolHandler) {
+        // Handle the initial effect count message
+        if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_ALL_EFFECTS.toByte()) {
+            if (bytes.size >= 3) {
+                val effectCount = ((bytes[1].toInt() and 0xFF) shl 8) or (bytes[2].toInt() and 0xFF)
+                // Acknowledge to start receiving the effect info
+                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
+            }
+            return
+        }
+
+        if (bytes.isNotEmpty() && bytes[0] == LedControllerCommands.CMD_GET_LED_COUNT.toByte()) {
+            if (bytes.size >= 3) {
+                val ledCount = ((bytes[1].toInt() and 0xFF) shl 8) or (bytes[2].toInt() and 0xFF)
+                deviceProtocolHandler.liveLedCount.postValue(ledCount)
+            }
+            return
+        }
+
+
+        // Append incoming text to the buffer
+        val incomingText = bytes.toString(Charsets.UTF_8)
+        responseBuffer.append(incomingText)
+
+        // Delegate buffer processing to the parser
+        JsonResponseParser.processBuffer(responseBuffer,
+            onEffectsReceived = { effects ->
+                val currentEffects = EffectsRepository.effects.value?.toMutableList() ?: mutableListOf()
+                effects.forEach { effect ->
+                    val existingIndex = currentEffects.indexOfFirst { it.name == effect.name }
+                    if (existingIndex != -1) {
+                        currentEffects[existingIndex] = effect
+                    } else {
+                        currentEffects.add(effect)
+                    }
+                }
+                EffectsRepository.updateEffects(currentEffects)
+                // Acknowledge to get the next effect
+                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
+            },
+            onStatusReceived = { status ->
+                // This part of your logic might need adjustment based on your app's flow.
+                // For now, it continues to request all effects after receiving a status.
+                CommandGetters.requestAllEffects()
+            },
+            onSegmentReceived = { segment ->
+                SegmentsRepository.addSegment(segment)
+            }
+        )
+    }
+}
 
 object JsonResponseParser {
     private val gson = Gson()
@@ -82,6 +135,7 @@ object JsonResponseParser {
     private fun parseStatusFromJson(jsonObject: JsonObject): Status {
         val effectNames = gson.fromJson(jsonObject.getAsJsonArray("available_effects"), Array<String>::class.java).toList()
         val jsonSegments = jsonObject.getAsJsonArray("segments")
+        SegmentsRepository.clearAllSegments()
         val segments = jsonSegments.mapNotNull { jsonElement ->
             try {
                 val segmentObject = jsonElement.asJsonObject
@@ -113,6 +167,7 @@ object JsonResponseParser {
                 null
             }
         }
+        SegmentsRepository.updateSegments(segments)
         return Status(effectNames = effectNames, segments = segments)
     }
 }
