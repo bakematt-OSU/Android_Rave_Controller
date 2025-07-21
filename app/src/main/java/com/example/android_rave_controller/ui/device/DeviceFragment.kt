@@ -11,7 +11,7 @@ import com.example.android_rave_controller.arduino_comm_ble.control.CommandGette
 import com.example.android_rave_controller.arduino_comm_ble.control.CommandSetters
 import com.example.android_rave_controller.arduino_comm_ble.ConnectionViewModel
 import com.example.android_rave_controller.databinding.FragmentDeviceBinding
-import com.example.android_rave_controller.ui.device.DeviceViewModel
+import com.example.android_rave_controller.models.Effect
 
 class DeviceFragment : Fragment() {
 
@@ -20,6 +20,7 @@ class DeviceFragment : Fragment() {
 
     private val connectionViewModel: ConnectionViewModel by activityViewModels()
     private val deviceViewModel: DeviceViewModel by activityViewModels()
+    private lateinit var effectsAdapter: EffectsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,6 +33,9 @@ class DeviceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        effectsAdapter = EffectsAdapter(mutableListOf())
+        binding.effectsRecyclerView.adapter = effectsAdapter
+
         connectionViewModel.connectionStatus.observe(viewLifecycleOwner) { status ->
             binding.textViewDeviceName.text = status.deviceName ?: "Not Connected"
             if (status.isConnected) {
@@ -41,6 +45,10 @@ class DeviceFragment : Fragment() {
 
         deviceViewModel.deviceProtocolHandler.liveLedCount.observe(viewLifecycleOwner) { count ->
             binding.textViewLedCount.text = count.toString()
+        }
+
+        deviceViewModel.effects.observe(viewLifecycleOwner) { effects ->
+            effectsAdapter.updateEffects(effects)
         }
 
         binding.buttonSaveConfigToDevice.setOnClickListener {

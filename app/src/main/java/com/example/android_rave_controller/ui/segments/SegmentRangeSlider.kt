@@ -19,7 +19,7 @@ class SegmentRangeSlider @JvmOverloads constructor(
 ) : RangeSlider(context, attrs, defStyleAttr) {
 
     private val existingSegmentPaint = Paint().apply {
-        color = ContextCompat.getColor(context, R.color.purple_200) // Color for existing segments
+        color = ContextCompat.getColor(context, R.color.purple_500) // Color for existing segments
         style = Paint.Style.FILL
     }
 
