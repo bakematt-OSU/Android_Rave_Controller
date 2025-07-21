@@ -58,7 +58,7 @@ fun showColorPickerDialog(
         .setDefaultColor(initialColor)
         .setColorListener(object : ColorListener {
             override fun onColorSelected(selectedColor: Int, colorHex: String) {
-                val finalColorValue = gammaCorrect(selectedColor)
+                val finalColorValue = selectedColor and 0x00FFFFFF // Correction is here
                 Log.d("ColorPicker", "Original: $colorHex. Final Positive Int Sent: $finalColorValue")
                 onColorSelected(finalColorValue)
             }
