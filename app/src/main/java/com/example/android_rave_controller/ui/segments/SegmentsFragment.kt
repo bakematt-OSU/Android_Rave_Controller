@@ -66,6 +66,18 @@ class SegmentsFragment : Fragment() {
                 .setNegativeButton(getString(R.string.dialog_no), null)
                 .show()
         }
+        binding.buttonClearLocal.setOnClickListener {
+            AlertDialog.Builder(requireContext(), R.style.MyDialogTheme)
+                .setTitle("Clear Local Segments?")
+                .setMessage("This will remove all segments from the editing window. This does not affect the device until you push the configuration.\n\nAre you sure?")
+                .setPositiveButton("Clear") { _, _ ->
+                    segmentViewModel.clearAllSegments()
+                    Toast.makeText(context, "Local segments cleared.", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
         binding.buttonWizard.setOnClickListener {
             SegmentsWizardDialogFragment().show(parentFragmentManager, "SegmentsWizardDialog")
         }
