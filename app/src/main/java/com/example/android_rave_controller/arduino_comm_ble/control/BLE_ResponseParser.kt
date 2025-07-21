@@ -56,6 +56,8 @@ object BLE_ResponseParser {
             },
             onSegmentReceived = { segment ->
                 SegmentsRepository.addSegment(segment)
+                // *** FIX: Send acknowledgment after processing a segment ***
+                BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_ACK.toByte()))
             }
         )
     }
