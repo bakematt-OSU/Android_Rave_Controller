@@ -7,10 +7,15 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.content.Context
 import android.os.Build
+// --- ADD THESE IMPORTS ---
+import android.os.Handler
+import android.os.Looper
+// --- END IMPORTS ---
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.android_rave_controller.arduino_comm_ble.control.DeviceProtocolHandler
+import com.example.android_rave_controller.arduino_comm_ble.control.LedControllerCommands
 import java.util.UUID
 
 @SuppressLint("MissingPermission")
@@ -20,7 +25,13 @@ class BluetoothConnectionManager(
 ) {
     private val TAG = "BluetoothConnectionManager"
 
-    private var connectingDeviceName: String? = null // *** ADD THIS LINE ***
+    private var connectingDeviceName: String? = null
+
+    // --- ADD THESE LINES ---
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var heartbeatRunnable: Runnable
+    private val HEARTBEAT_INTERVAL_MS = 1500L
+    // --- END ADDED LINES ---
 
     // UUIDs remain the same
     private val LED_SERVICE_UUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214")
@@ -32,20 +43,30 @@ class BluetoothConnectionManager(
     var rxCharacteristic: BluetoothGattCharacteristic? = null
     var txCharacteristic: BluetoothGattCharacteristic? = null
 
-    // --- MODIFICATION START ---
-    // Replace the two separate LiveData objects with a single one
     private val _connectionStatus = MutableLiveData(ConnectionStatus(false, null))
     val connectionStatus: LiveData<ConnectionStatus> = _connectionStatus
-    // --- MODIFICATION END ---
 
     private val gattCallback = GattCallbackHandler(this, deviceProtocolHandler)
 
+    // --- ADD THIS BLOCK ---
+    init {
+        heartbeatRunnable = object : Runnable {
+            override fun run() {
+                if (_connectionStatus.value?.isConnected == true) {
+                    Log.d(TAG, "Sending BLE heartbeat...")
+                    BluetoothService.sendCommand(byteArrayOf(LedControllerCommands.CMD_HEARTBEAT.toByte()))
+                    // Schedule the next heartbeat
+                    handler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
+                }
+            }
+        }
+    }
+    // --- END ADDED BLOCK ---
+
 
     fun connect(device: BluetoothDevice) {
-        // --- MODIFICATION START ---
         connectingDeviceName = device.name ?: device.address
         _connectionStatus.postValue(ConnectionStatus(false, connectingDeviceName))
-        // --- MODIFICATION END ---
         bluetoothGatt = device.connectGatt(context, false, gattCallback)
     }
 
@@ -56,23 +77,20 @@ class BluetoothConnectionManager(
     }
 
     private fun cleanup() {
+        // --- ADD THIS LINE ---
+        handler.removeCallbacks(heartbeatRunnable)
+        // --- END ADDED LINE ---
         bluetoothGatt?.close()
         bluetoothGatt = null
         rxCharacteristic = null
         txCharacteristic = null
-        // --- MODIFICATION START ---
-        // Only clear the connecting device name on a full cleanup/disconnect.
         connectingDeviceName = null
         _connectionStatus.postValue(ConnectionStatus(false, null))
-        // --- MODIFICATION END ---
     }
 
 
     fun onDeviceConnected(gatt: BluetoothGatt) {
-        // --- MODIFICATION START ---
-        // Use the stored connectingDeviceName, which is guaranteed to be non-null here.
         _connectionStatus.postValue(ConnectionStatus(true, connectingDeviceName))
-        // --- MODIFICATION END ---
         bluetoothGatt = gatt
     }
 

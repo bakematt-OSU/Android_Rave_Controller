@@ -22,6 +22,8 @@ object LedControllerCommands {
     const val CMD_SAVE_CONFIG = 0x12             // New
     const val CMD_READY = 0xD0.toByte()          // New: Device ready signal
 
+    // --- ADD THIS LINE ---
+    const val CMD_HEARTBEAT = 0xD1               // New: Heartbeat ping
 
     // Response codes
     const val CMD_ACK = 0xA0

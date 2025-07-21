@@ -66,9 +66,12 @@ class GattCallbackHandler(
     override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
         super.onDescriptorWrite(gatt, descriptor, status)
         if (status == BluetoothGatt.GATT_SUCCESS) {
-            Log.d(TAG, "Descriptor write successful.")
-            // ADD THIS LINE
+            Log.d(TAG, "Descriptor write successful. Starting initial data fetch.")
+            // --- This line was already correct, it ensures we get the device state first. ---
             CommandGetters.requestAllEffects()
+            // --- NO CHANGE NEEDED HERE ---
+            // The heartbeat will be started automatically by the logic in BluetoothConnectionManager
+            // once the connection state is confirmed.
         } else {
             Log.e(TAG, "Descriptor write failed with status: $status")
         }
